@@ -6,7 +6,7 @@ services:
     image: postgres:16
     restart: always
     environment:
-      POSTGRES_DB: coo_database
+      POSTGRES_DB: vsoko_database
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123
     volumes:

@@ -1,0 +1,12 @@
+using Application.Common.ResultsDto;
+
+namespace Application.Interfaces.SecurityManager;
+
+public interface ISecurityService
+{
+    public Task<LoginResultDto> LoginAsync(
+        string login,
+        string password,
+        CancellationToken cancellationToken
+    );
+}
