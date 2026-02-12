@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Application.Common.DTOs;
 using Application.Interfaces.DataManager.Repositories;
 using Domain.Enums;
 using FluentValidation;
@@ -6,7 +7,7 @@ using MediatR;
 
 namespace Application.Features.CriteriaFeatures.Command;
 
-public class PutCriteriaCommandRequest : IRequest<string>
+public class PutCriteriaCommandRequest : IRequest<CriteriaDto>
 {
     public string? Id { get; init; }
     public string? Name { get; init; }
@@ -23,7 +24,7 @@ public class PutCriteriaCommandValidator : AbstractValidator<PutCriteriaCommandR
     }
 }
 
-public class PutCriteriaCommandRequestHandler : IRequestHandler<PutCriteriaCommandRequest, string>
+public class PutCriteriaCommandRequestHandler : IRequestHandler<PutCriteriaCommandRequest, CriteriaDto>
 {
     private readonly ICriteriaRepository _criteriaRepository;
 
@@ -32,7 +33,7 @@ public class PutCriteriaCommandRequestHandler : IRequestHandler<PutCriteriaComma
         _criteriaRepository = criteriaRepository;
     }
 
-    public async Task<string> Handle(
+    public async Task<CriteriaDto> Handle(
         PutCriteriaCommandRequest request,
         CancellationToken cancellationToken
     )

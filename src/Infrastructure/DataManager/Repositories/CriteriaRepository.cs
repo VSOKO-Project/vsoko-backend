@@ -20,11 +20,11 @@ public class CriteriaRepository : ICriteriaRepository
     public async Task<List<CriteriaDto>> GetAllCriteria(CancellationToken cancellationToken)
     {
         return await _dbContext
-            .Criterias.Select(w => new CriteriaDto { Name = w.Name, Id = w.Id })
+            .Criterias.Select(w => new CriteriaDto { Name = w.Name, Id = w.Id , Object = w.Object})
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<string> PostCriteria(
+    public async Task<CriteriaDto> PostCriteria(
         string? name,
         CriteriaObject criteriaObject,
         CancellationToken cancellationToken
@@ -36,7 +36,12 @@ public class CriteriaRepository : ICriteriaRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return newCriteria.Id;
+        return new CriteriaDto
+        {
+            Name = newCriteria.Name,
+            Id = newCriteria.Id,
+            Object = newCriteria.Object
+        };
     }
 
     public async Task DeleteCriteria(string id, CancellationToken cancellationToken)
@@ -44,13 +49,13 @@ public class CriteriaRepository : ICriteriaRepository
         var criteria = await _dbContext.Criterias.FindAsync(id, cancellationToken);
         if (criteria != null)
         {
-            _dbContext.Criterias.Remove(criteria);
+            criteria.IsDeleted = true;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 
-    public async Task<string> PutCriteria(
+    public async Task<CriteriaDto> PutCriteria(
         string id,
         string? name,
         CriteriaObject criteriaObject,
@@ -67,6 +72,11 @@ public class CriteriaRepository : ICriteriaRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return criteria.Id;
+        return new CriteriaDto
+        {
+            Id = criteria.Id,
+            Name = criteria.Name,
+            Object = criteria.Object
+        };
     }
 }
