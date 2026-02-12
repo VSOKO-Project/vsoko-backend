@@ -9,4 +9,6 @@ public interface ISecurityService
         string password,
         CancellationToken cancellationToken
     );
+
+    public Task<LoginResultDto> RefreshToken(string refresh, CancellationToken cancellationToken);
 }

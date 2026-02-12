@@ -10,8 +10,6 @@ public class DisciplineConfiguration : BaseEntityConfiguration<Discipline>
     {
         base.Configure(builder);
 
-        builder.Property(w => w.Name)
-        .IsRequired()
-        .HasMaxLength(100);
+        builder.Property(w => w.Name).IsRequired().HasMaxLength(100);
     }
 }

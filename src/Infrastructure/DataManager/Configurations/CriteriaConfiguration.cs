@@ -9,10 +9,8 @@ public class CriteriaConfiguration : BaseEntityConfiguration<Criteria>
     public override void Configure(EntityTypeBuilder<Criteria> builder)
     {
         base.Configure(builder);
-        builder.HasIndex(w => w.Name)
-        .IsUnique();
+        builder.HasIndex(w => w.Name).IsUnique();
 
-        builder.Property(w => w.Name)
-        .IsRequired();
+        builder.Property(w => w.Name).IsRequired();
     }
 }

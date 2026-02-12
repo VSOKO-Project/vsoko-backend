@@ -1,7 +1,7 @@
-using Infrastructure;
-using Presentation.Common.Middlewares;
 using Application;
+using Infrastructure;
 using Infrastructure.SecurityManager.Tokens;
+using Presentation.Common.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 

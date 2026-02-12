@@ -30,8 +30,15 @@ public class PostCriteriaCommandRequestHandler : IRequestHandler<PostCriteriaCom
         _criteriaRepository = criteriaRepository;
     }
 
-    public async Task<string> Handle(PostCriteriaCommandRequest request, CancellationToken cancellationToken)
+    public async Task<string> Handle(
+        PostCriteriaCommandRequest request,
+        CancellationToken cancellationToken
+    )
     {
-        return await _criteriaRepository.PostCriteria(request.Name, request.criteriaObject, cancellationToken);
+        return await _criteriaRepository.PostCriteria(
+            request.Name,
+            request.criteriaObject,
+            cancellationToken
+        );
     }
 }

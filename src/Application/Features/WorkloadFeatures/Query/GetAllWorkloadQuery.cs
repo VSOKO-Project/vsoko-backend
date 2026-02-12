@@ -1,12 +1,12 @@
-using Application.Common.DTOs;
-using Application.Interfaces.DataManager.Repositories;
-using Application.Common.Results;
-using Domain.Entities;
-using MediatR;
-using Application.Common.Extension;
-using Application.Common.CQRS;
-using FluentValidation;
 using System.Data;
+using Application.Common.CQRS;
+using Application.Common.DTOs;
+using Application.Common.Extension;
+using Application.Common.Results;
+using Application.Interfaces.DataManager.Repositories;
+using Domain.Entities;
+using FluentValidation;
+using MediatR;
 
 namespace Application.Features.WorkloadFeatures;
 
@@ -26,16 +26,26 @@ public class GetAllWorkloadRequestValidator : AbstractValidator<GetAllWorkloadRe
     }
 }
 
-public class GetAllWorkloadRequestHandler : IRequestHandler<GetAllWorkloadRequest, PagedResultDto<WorkloadDto>>
+public class GetAllWorkloadRequestHandler
+    : IRequestHandler<GetAllWorkloadRequest, PagedResultDto<WorkloadDto>>
 {
     private readonly IWorkloadRepository _workloadRepository;
+
     public GetAllWorkloadRequestHandler(IWorkloadRepository workloadRepository)
     {
         _workloadRepository = workloadRepository;
     }
 
-    public async Task<PagedResultDto<WorkloadDto>> Handle(GetAllWorkloadRequest request, CancellationToken cancellationToken)
+    public async Task<PagedResultDto<WorkloadDto>> Handle(
+        GetAllWorkloadRequest request,
+        CancellationToken cancellationToken
+    )
     {
-        return await _workloadRepository.GetPagedWorkload(request.Page, request.Query ?? "", request.PageSize, cancellationToken);
+        return await _workloadRepository.GetPagedWorkload(
+            request.Page,
+            request.Query ?? "",
+            request.PageSize,
+            cancellationToken
+        );
     }
 }

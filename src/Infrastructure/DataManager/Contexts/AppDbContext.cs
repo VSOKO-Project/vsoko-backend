@@ -1,16 +1,18 @@
+using System.Linq.Expressions;
+using Domain.Common;
 using Domain.Entities;
 using Infrastructure.DataManager.Configurations;
 using Infrastructure.SecurityManager.AspNetCoreIdentity;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Infrastructure.DataManager.Contexts;
 
 public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    { }
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options) { }
 
     public DbSet<StudentGroup> StudentGroups { get; set; }
     public DbSet<Discipline> Disciplines { get; set; }
@@ -22,6 +24,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Workload> Workloads { get; set; }
     public DbSet<Feedback> Feedbacks { get; set; }
     public DbSet<Teacher> Teachers { get; set; }
+    public DbSet<Refresh> Refreshes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +42,32 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.ApplyConfiguration(new WorkloadConfiguration());
         modelBuilder.ApplyConfiguration(new FeedbackConfiguration());
         modelBuilder.ApplyConfiguration(new TeacherConfiguration());
+        modelBuilder.ApplyConfiguration(new RefreshConfiguration());
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                modelBuilder
+                    .Entity(entityType.ClrType)
+                    .HasQueryFilter(
+                        ConvertFilterExpression<BaseEntity>(e => !e.IsDeleted, entityType.ClrType)
+                    );
+            }
+        }
     }
 
+    private static LambdaExpression ConvertFilterExpression<TInterface>(
+        Expression<Func<TInterface, bool>> filterExpression,
+        Type entityType
+    )
+    {
+        var newParam = Expression.Parameter(entityType);
+        var newBody = ReplacingExpressionVisitor.Replace(
+            filterExpression.Parameters.Single(),
+            newParam,
+            filterExpression.Body
+        );
+        return Expression.Lambda(newBody, newParam);
+    }
 }

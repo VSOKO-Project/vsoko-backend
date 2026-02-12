@@ -4,8 +4,7 @@ using MediatR;
 
 namespace Application.Features.CriteriaFeatures.Query;
 
-public class GetAllCriteriaQuery : IRequest<List<CriteriaDto>>
-{ }
+public class GetAllCriteriaQuery : IRequest<List<CriteriaDto>> { }
 
 public class GetAllCriteriaQueryHandler : IRequestHandler<GetAllCriteriaQuery, List<CriteriaDto>>
 {
@@ -16,7 +15,10 @@ public class GetAllCriteriaQueryHandler : IRequestHandler<GetAllCriteriaQuery, L
         _criteriaRepository = criteriaRepository;
     }
 
-    public async Task<List<CriteriaDto>> Handle(GetAllCriteriaQuery query, CancellationToken cancellationToken)
+    public async Task<List<CriteriaDto>> Handle(
+        GetAllCriteriaQuery query,
+        CancellationToken cancellationToken
+    )
     {
         return await _criteriaRepository.GetAllCriteria(cancellationToken);
     }

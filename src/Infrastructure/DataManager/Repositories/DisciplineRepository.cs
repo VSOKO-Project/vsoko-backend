@@ -1,6 +1,6 @@
 using Application.Common.DTOs;
-using Application.Interfaces.DataManager.Repositories;
 using Application.Common.Results;
+using Application.Interfaces.DataManager.Repositories;
 using Domain.Enums;
 using Infrastructure.DataManager.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -11,21 +11,24 @@ namespace Infrastructure.DataManager.Repositories;
 public class DisciplineRepository : IDisciplineRepository
 {
     private readonly AppDbContext _dbContext;
+
     public DisciplineRepository(AppDbContext dbContext)
     {
         _dbContext = dbContext;
     }
+
     public async Task<PagedResultDto<RatingDto>> GetRating(
-    int page,
-    string? query,
-    int pageSize,
-    CancellationToken cancellationToken)
+        int page,
+        string? query,
+        int pageSize,
+        CancellationToken cancellationToken
+    )
     {
-        var baseQuery = _dbContext.Disciplines
-            .Include(w => w.WorkloadRefs)
-            .ThenInclude(w => w.FeedbackRefs)
-            .ThenInclude(w => w.CriteriaFeedbackRefs)
-            .ThenInclude(w => w.CriteriaRef)
+        var baseQuery = _dbContext
+            .Disciplines.Include(w => w.WorkloadRefs)
+                .ThenInclude(w => w.FeedbackRefs)
+                    .ThenInclude(w => w.CriteriaFeedbackRefs)
+                        .ThenInclude(w => w.CriteriaRef)
             .WhereNameOrTeacherContains(query);
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
@@ -38,12 +41,14 @@ public class DisciplineRepository : IDisciplineRepository
             {
                 Id = t.Id,
                 Name = t.Name,
-                Grade = t.WorkloadRefs
-                    .SelectMany(w => w.FeedbackRefs)
-                    .SelectMany(f => f.CriteriaFeedbackRefs)
-                    .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Discipline)
-                    .Average(cf => (float?)cf.CriteriaScore) ?? 0f
-            }).ToListAsync(cancellationToken);
+                Grade =
+                    t.WorkloadRefs.SelectMany(w => w.FeedbackRefs)
+                        .SelectMany(f => f.CriteriaFeedbackRefs)
+                        .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Discipline)
+                        .Average(cf => (float?)cf.CriteriaScore)
+                    ?? 0f,
+            })
+            .ToListAsync(cancellationToken);
 
         return new PagedResultDto<RatingDto>
         {
@@ -51,7 +56,7 @@ public class DisciplineRepository : IDisciplineRepository
             TotalPages = (int)Math.Ceiling(totalCount / (decimal)pageSize),
             Page = page,
             PageSize = pageSize,
-            TotalCount = totalCount
+            TotalCount = totalCount,
         };
     }
 }

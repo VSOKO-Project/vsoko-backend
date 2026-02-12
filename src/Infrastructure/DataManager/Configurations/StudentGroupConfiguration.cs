@@ -12,11 +12,8 @@ public class StudentGroupConfiguration : BaseEntityConfiguration<StudentGroup>
 
         builder.HasIndex(w => w.Name).IsUnique();
 
-        builder.Property(w => w.Name)
-        .IsRequired()
-        .HasMaxLength(10);
+        builder.Property(w => w.Name).IsRequired().HasMaxLength(10);
 
-        builder.Property(w => w.Semester)
-        .IsRequired();
+        builder.Property(w => w.Semester).IsRequired();
     }
 }

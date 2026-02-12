@@ -5,7 +5,8 @@ using MediatR;
 
 namespace Application.Common.Behaviors;
 
-public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
+public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -14,7 +15,11 @@ public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken
+    )
     {
         if (request is IQuery)
             return await next();

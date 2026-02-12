@@ -10,8 +10,6 @@ public class EmployeeRoleConfiguration : BaseEntityConfiguration<EmployeeRole>
     {
         base.Configure(builder);
 
-        builder.Property(w => w.Name)
-        .IsRequired()
-        .HasMaxLength(255);
+        builder.Property(w => w.Name).IsRequired().HasMaxLength(255);
     }
 }

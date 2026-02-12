@@ -27,14 +27,26 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, s
     private readonly IFeedbackRepository _feedbackRepository;
     private readonly IUserContext _userContext;
 
-    public PostFeedbackRequestHandler(IFeedbackRepository feedbackRepository, IUserContext userContext)
+    public PostFeedbackRequestHandler(
+        IFeedbackRepository feedbackRepository,
+        IUserContext userContext
+    )
     {
         _feedbackRepository = feedbackRepository;
         _userContext = userContext;
     }
 
-    public async Task<string> Handle(PostFeedbackRequest request, CancellationToken cancellationToken)
+    public async Task<string> Handle(
+        PostFeedbackRequest request,
+        CancellationToken cancellationToken
+    )
     {
-        return await _feedbackRepository.PostFeedback(request.Feedback!, request.Comment, request.workloadId!, _userContext.UserId, cancellationToken);
+        return await _feedbackRepository.PostFeedback(
+            request.Feedback!,
+            request.Comment,
+            request.workloadId!,
+            _userContext.UserId,
+            cancellationToken
+        );
     }
 }

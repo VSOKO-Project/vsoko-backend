@@ -1,7 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using Application.Common.DTOs;
-using Application.Interfaces.DataManager.Repositories;
 using Application.Common.Results;
+using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
 
@@ -23,7 +23,8 @@ public class GetDisciplineRatingRequestValidator : AbstractValidator<GetDiscipli
     }
 }
 
-public class GetDisciplineRatingRequestHandler : IRequestHandler<GetDisciplineRatingRequest, PagedResultDto<RatingDto>>
+public class GetDisciplineRatingRequestHandler
+    : IRequestHandler<GetDisciplineRatingRequest, PagedResultDto<RatingDto>>
 {
     private readonly IDisciplineRepository _disciplineRepository;
 
@@ -32,8 +33,16 @@ public class GetDisciplineRatingRequestHandler : IRequestHandler<GetDisciplineRa
         _disciplineRepository = disciplineRepository;
     }
 
-    public async Task<PagedResultDto<RatingDto>> Handle(GetDisciplineRatingRequest request, CancellationToken cancellationToken)
+    public async Task<PagedResultDto<RatingDto>> Handle(
+        GetDisciplineRatingRequest request,
+        CancellationToken cancellationToken
+    )
     {
-        return await _disciplineRepository.GetRating(request.Page, request.Query ?? "", request.PageSize, cancellationToken);
+        return await _disciplineRepository.GetRating(
+            request.Page,
+            request.Query ?? "",
+            request.PageSize,
+            cancellationToken
+        );
     }
 }

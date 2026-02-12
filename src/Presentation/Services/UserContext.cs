@@ -16,10 +16,7 @@ public class UserContext : IUserContext
     {
         get
         {
-            var roles = User?
-                .FindAll(ClaimTypes.Role)
-                .Select(c => c.Value)
-                .ToList();
+            var roles = User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
 
             if (roles is null || roles.Count == 0)
                 return null;

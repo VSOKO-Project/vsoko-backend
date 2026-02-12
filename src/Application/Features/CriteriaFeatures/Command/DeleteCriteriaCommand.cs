@@ -18,7 +18,8 @@ public class DeleteCriteriaCommandValidator : AbstractValidator<DeleteCriteriaCo
     }
 }
 
-public class DeleteCriteriaCommandRequestHandler : IRequestHandler<DeleteCriteriaCommandRequest, Unit>
+public class DeleteCriteriaCommandRequestHandler
+    : IRequestHandler<DeleteCriteriaCommandRequest, Unit>
 {
     private readonly ICriteriaRepository _criteriaRepository;
 
@@ -27,7 +28,10 @@ public class DeleteCriteriaCommandRequestHandler : IRequestHandler<DeleteCriteri
         _criteriaRepository = criteriaRepository;
     }
 
-    public async Task<Unit> Handle(DeleteCriteriaCommandRequest request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DeleteCriteriaCommandRequest request,
+        CancellationToken cancellationToken
+    )
     {
         await _criteriaRepository.DeleteCriteria(request.Id!, cancellationToken);
         return Unit.Value;

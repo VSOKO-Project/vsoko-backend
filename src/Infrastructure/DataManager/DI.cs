@@ -10,12 +10,14 @@ namespace Infrastructure.DataManager;
 
 public static class DI
 {
-    public static IServiceCollection ApplyDataManager(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection ApplyDataManager(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var conectionstring = configuration.GetConnectionString("Database");
 
-        services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(conectionstring));
+        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(conectionstring));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

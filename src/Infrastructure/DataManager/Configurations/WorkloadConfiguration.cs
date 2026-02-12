@@ -10,16 +10,16 @@ public class WorkloadConfiguration : BaseEntityConfiguration<Workload>
     {
         base.Configure(builder);
 
-        builder.HasOne(w => w.TeacherRef)
-        .WithMany(w => w.WorkloadsRefs)
-        .HasForeignKey(w => w.TeacherId);
+        builder
+            .HasOne(w => w.TeacherRef)
+            .WithMany(w => w.WorkloadsRefs)
+            .HasForeignKey(w => w.TeacherId);
 
-        builder.HasOne(w => w.DisciplineRef)
-        .WithMany(w => w.WorkloadRefs)
-        .HasForeignKey(w => w.DisciplineId);
+        builder
+            .HasOne(w => w.DisciplineRef)
+            .WithMany(w => w.WorkloadRefs)
+            .HasForeignKey(w => w.DisciplineId);
 
-        builder.HasOne(w => w.GroupRef)
-        .WithMany(w => w.WorkloadRefs)
-        .HasForeignKey(w => w.GroupId);
+        builder.HasOne(w => w.GroupRef).WithMany(w => w.WorkloadRefs).HasForeignKey(w => w.GroupId);
     }
 }

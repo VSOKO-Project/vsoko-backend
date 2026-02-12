@@ -35,6 +35,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("CreatedById")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -82,6 +87,11 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -113,6 +123,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("CreatedById")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -141,6 +156,11 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("CreatedById")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("RoleId")
                         .IsRequired()
@@ -171,6 +191,11 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("CreatedById")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -206,6 +231,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("CreatedById")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("StudentId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -229,6 +259,46 @@ namespace Infrastructure.Migrations
                     b.ToTable("Feedbacks");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Refresh", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Refreshes");
+                });
+
             modelBuilder.Entity("Domain.Entities.Student", b =>
                 {
                     b.Property<string>("Id")
@@ -245,6 +315,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("GroupId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -271,6 +346,11 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("CreatedById")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -306,6 +386,11 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("CreatedById")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -353,6 +438,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("GroupId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("TeacherId")
                         .IsRequired()
@@ -665,6 +755,15 @@ namespace Infrastructure.Migrations
                     b.Navigation("WorkloadRef");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Refresh", b =>
+                {
+                    b.HasOne("Infrastructure.SecurityManager.AspNetCoreIdentity.ApplicationUser", null)
+                        .WithMany("Refreshes")
+                        .HasForeignKey("Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Domain.Entities.Student", b =>
                 {
                     b.HasOne("Domain.Entities.StudentGroup", "GroupRef")
@@ -805,6 +904,8 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Infrastructure.SecurityManager.AspNetCoreIdentity.ApplicationUser", b =>
                 {
                     b.Navigation("EmployeeRef");
+
+                    b.Navigation("Refreshes");
 
                     b.Navigation("StudentRef");
                 });

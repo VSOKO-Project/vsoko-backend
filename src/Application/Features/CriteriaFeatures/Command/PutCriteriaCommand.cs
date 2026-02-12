@@ -32,8 +32,16 @@ public class PutCriteriaCommandRequestHandler : IRequestHandler<PutCriteriaComma
         _criteriaRepository = criteriaRepository;
     }
 
-    public async Task<string> Handle(PutCriteriaCommandRequest request, CancellationToken cancellationToken)
+    public async Task<string> Handle(
+        PutCriteriaCommandRequest request,
+        CancellationToken cancellationToken
+    )
     {
-        return await _criteriaRepository.PutCriteria(request.Id!, request.Name, request.criteriaObject, cancellationToken);
+        return await _criteriaRepository.PutCriteria(
+            request.Id!,
+            request.Name,
+            request.criteriaObject,
+            cancellationToken
+        );
     }
 }

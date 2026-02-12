@@ -11,6 +11,7 @@ namespace Infrastructure.DataManager.Repositories;
 public class CriteriaRepository : ICriteriaRepository
 {
     private readonly AppDbContext _dbContext;
+
     public CriteriaRepository(AppDbContext dbContext)
     {
         _dbContext = dbContext;
@@ -18,19 +19,18 @@ public class CriteriaRepository : ICriteriaRepository
 
     public async Task<List<CriteriaDto>> GetAllCriteria(CancellationToken cancellationToken)
     {
-        return await _dbContext.Criterias.Select(w => new CriteriaDto
-        {
-            Name = w.Name,
-            Id = w.Id
-        }).ToListAsync(cancellationToken);
+        return await _dbContext
+            .Criterias.Select(w => new CriteriaDto { Name = w.Name, Id = w.Id })
+            .ToListAsync(cancellationToken);
     }
-    public async Task<string> PostCriteria(string? name, CriteriaObject criteriaObject, CancellationToken cancellationToken)
+
+    public async Task<string> PostCriteria(
+        string? name,
+        CriteriaObject criteriaObject,
+        CancellationToken cancellationToken
+    )
     {
-        var newCriteria = new Criteria
-        {
-            Name = name ?? "?",
-            Object = criteriaObject
-        };
+        var newCriteria = new Criteria { Name = name ?? "?", Object = criteriaObject };
 
         await _dbContext.Criterias.AddAsync(newCriteria, cancellationToken);
 
@@ -38,6 +38,7 @@ public class CriteriaRepository : ICriteriaRepository
 
         return newCriteria.Id;
     }
+
     public async Task DeleteCriteria(string id, CancellationToken cancellationToken)
     {
         var criteria = await _dbContext.Criterias.FindAsync(id, cancellationToken);
@@ -48,7 +49,13 @@ public class CriteriaRepository : ICriteriaRepository
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }
-    public async Task<string> PutCriteria(string id, string? name, CriteriaObject criteriaObject, CancellationToken cancellationToken)
+
+    public async Task<string> PutCriteria(
+        string id,
+        string? name,
+        CriteriaObject criteriaObject,
+        CancellationToken cancellationToken
+    )
     {
         var criteria = await _dbContext.Criterias.FindAsync(id, cancellationToken);
 

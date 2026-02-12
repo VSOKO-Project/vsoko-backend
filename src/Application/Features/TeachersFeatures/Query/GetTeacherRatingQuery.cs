@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Data;
 using Application.Common.DTOs;
-using Application.Interfaces.DataManager.Repositories;
 using Application.Common.Results;
+using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
 
@@ -24,7 +24,8 @@ public class GetTeachersRatingRequestValidator : AbstractValidator<GetTeachersRa
     }
 }
 
-public class GetTeachersRatingRequestHandler : IRequestHandler<GetTeachersRatingRequest, PagedResultDto<RatingDto>>
+public class GetTeachersRatingRequestHandler
+    : IRequestHandler<GetTeachersRatingRequest, PagedResultDto<RatingDto>>
 {
     private readonly ITeacherRepository _teacherRepository;
 
@@ -33,8 +34,16 @@ public class GetTeachersRatingRequestHandler : IRequestHandler<GetTeachersRating
         _teacherRepository = teacherRepository;
     }
 
-    public async Task<PagedResultDto<RatingDto>> Handle(GetTeachersRatingRequest request, CancellationToken cancellationToken)
+    public async Task<PagedResultDto<RatingDto>> Handle(
+        GetTeachersRatingRequest request,
+        CancellationToken cancellationToken
+    )
     {
-        return await _teacherRepository.GetRating(request.Page, request.Query ?? "", request.PageSize, cancellationToken);
+        return await _teacherRepository.GetRating(
+            request.Page,
+            request.Query ?? "",
+            request.PageSize,
+            cancellationToken
+        );
     }
 }

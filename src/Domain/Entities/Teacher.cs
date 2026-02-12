@@ -9,5 +9,4 @@ public class Teacher : BaseEntity
     public string Patronymic { get; set; } = null!;
 
     public List<Workload> WorkloadsRefs { get; init; } = new();
-
 }

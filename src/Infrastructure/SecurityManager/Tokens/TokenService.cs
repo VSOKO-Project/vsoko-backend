@@ -1,9 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Text;
+using Infrastructure.SecurityManager.AspNetCoreIdentity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Infrastructure.SecurityManager.AspNetCoreIdentity;
-
 
 namespace Infrastructure.SecurityManager.Tokens;
 
@@ -18,7 +18,10 @@ public class TokenService
         _claimService = claimService;
     }
 
-    public async Task<(string, DateTime)> GenerateJwtToken(ApplicationUser user, CancellationToken cancellationToken)
+    public async Task<(string, DateTime)> GenerateJwtToken(
+        ApplicationUser user,
+        CancellationToken cancellationToken
+    )
     {
         var claims = await _claimService.GetClaimsForUserAsync(user, cancellationToken);
 
@@ -33,12 +36,28 @@ public class TokenService
             expires: DateTime.UtcNow.AddMinutes(_tokenSettings.ExpireInMinute)
         );
 
-        return (new JwtSecurityTokenHandler().WriteToken(jwtToken), DateTime.Now.AddMinutes(_tokenSettings.ExpireInMinute));
+        return (
+            new JwtSecurityTokenHandler().WriteToken(jwtToken),
+            DateTime.UtcNow.AddMinutes(_tokenSettings.ExpireInMinute)
+        );
     }
 
     private SymmetricSecurityKey GetSymmetricSecurityKey()
     {
         var keyBytes = Encoding.UTF8.GetBytes(_tokenSettings.SecretKey);
         return new SymmetricSecurityKey(keyBytes);
+    }
+
+    public (string, DateTime) GenerateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomNumber);
+            return (
+                Convert.ToBase64String(randomNumber),
+                DateTime.UtcNow.AddDays(_tokenSettings.RefreshExpireInDays)
+            );
+        }
     }
 }

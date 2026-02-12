@@ -25,26 +25,26 @@ public static class GlobalExceptionHandler
                     {
                         Title = "Domain Exception",
                         Status = Status400BadRequest,
-                        Detail = e.Message
+                        Detail = e.Message,
                     },
                     Application.Common.Exceptions.ValidationException e => new ProblemDetails
                     {
                         Title = "Validation Exception",
                         Status = Status400BadRequest,
-                        Detail = e.Message
+                        Detail = e.Message,
                     },
                     Application.Common.Exceptions.NotFoundException e => new ProblemDetails
                     {
                         Title = "NotFound Exception",
                         Status = Status404NotFound,
-                        Detail = e.Message
+                        Detail = e.Message,
                     },
                     _ => new ProblemDetails
                     {
                         Title = "Internal Server Error",
                         Status = Status500InternalServerError,
-                        Detail = "An unexpected error occurred."
-                    }
+                        Detail = "An unexpected error occurred.",
+                    },
                 };
 
                 context.Response.StatusCode = problem.Status ?? 500;

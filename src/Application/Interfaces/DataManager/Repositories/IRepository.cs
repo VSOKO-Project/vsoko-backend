@@ -1,4 +1,3 @@
 namespace Application.Interfaces.DataManager.Repositories;
 
-public interface IRepository<T>
-{ }
+public interface IRepository<T> { }

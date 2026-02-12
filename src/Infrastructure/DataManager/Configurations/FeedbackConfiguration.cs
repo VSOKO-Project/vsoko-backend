@@ -1,7 +1,7 @@
 using Domain.Entities;
 using Infrastructure.DataManager.Common;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.DataManager.Configurations;
 
@@ -11,15 +11,16 @@ public class FeedbackConfiguration : BaseEntityConfiguration<Feedback>
     {
         base.Configure(builder);
 
-        builder.Property(w => w.Comment)
-            .HasMaxLength(510);
+        builder.Property(w => w.Comment).HasMaxLength(510);
 
-        builder.HasOne(w => w.StudentRef)
-        .WithMany(w => w.FeedbackRefs)
-        .HasForeignKey(w => w.StudentId);
+        builder
+            .HasOne(w => w.StudentRef)
+            .WithMany(w => w.FeedbackRefs)
+            .HasForeignKey(w => w.StudentId);
 
-        builder.HasOne(w => w.WorkloadRef)
-        .WithMany(w => w.FeedbackRefs)
-        .HasForeignKey(w => w.WorkloadId);
+        builder
+            .HasOne(w => w.WorkloadRef)
+            .WithMany(w => w.FeedbackRefs)
+            .HasForeignKey(w => w.WorkloadId);
     }
 }

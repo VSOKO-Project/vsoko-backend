@@ -19,4 +19,5 @@ public class ApplicationUser : IdentityUser
 
     public Student? StudentRef { get; set; }
     public Employee? EmployeeRef { get; set; }
+    public List<Refresh>? Refreshes { get; set; }
 }

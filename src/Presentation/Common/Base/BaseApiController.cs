@@ -8,6 +8,7 @@ namespace Presentation.Common.Base;
 public abstract class BaseApiController : ControllerBase
 {
     protected readonly ISender _sender;
+
     public BaseApiController(ISender sender)
     {
         _sender = sender;

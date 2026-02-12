@@ -1,11 +1,11 @@
 using System.ComponentModel;
+using Application.Common.CQRS;
 using Application.Common.ResultsDto;
 using Application.Interfaces.SecurityManager;
 using FluentValidation;
 using MediatR;
-using Application.Common.CQRS;
 
-namespace Application.Features.SecurityFeatures;
+namespace Application.Features.SecurityFeatures.Query;
 
 public class LoginQuery : IRequest<LoginResultDto>, IQuery
 {
@@ -31,16 +31,17 @@ public class LoginQueryHandler : IRequestHandler<LoginQuery, LoginResultDto>
         _securityManager = securityManager;
     }
 
-    public async Task<LoginResultDto> Handle(LoginQuery request, CancellationToken cancellationToken)
+    public async Task<LoginResultDto> Handle(
+        LoginQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var result = await _securityManager.LoginAsync(request.Login ?? "", request.Password ?? "", cancellationToken);
+        var result = await _securityManager.LoginAsync(
+            request.Login ?? "",
+            request.Password ?? "",
+            cancellationToken
+        );
 
-        return new LoginResultDto
-        {
-            AccessToken = result.AccessToken,
-            Expires = result.Expires,
-            UserId = result.UserId,
-            IsAdmin = result.IsAdmin
-        };
+        return result;
     }
 }
