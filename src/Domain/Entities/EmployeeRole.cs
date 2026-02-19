@@ -4,7 +4,7 @@ namespace Domain.Entities;
 
 public class EmployeeRole : BaseEntity
 {
-    public string Name { get; set; } = null!;
+    public required string Name { get; set; }
 
-    public List<Employee>? EmployeeRefs { get; init; }
+    public List<Employee>? EmployeeRefs { get; set; }
 }

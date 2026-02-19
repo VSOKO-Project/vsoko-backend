@@ -1,3 +1,4 @@
+using Application.Interfaces.DataManager.Repositories;
 using Application.Interfaces.DataManager;
 using Infrastructure.DataManager.Contexts;
 using Infrastructure.DataManager.Repositories;
@@ -20,6 +21,20 @@ public static class DI
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(conectionstring));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Repositories
+        services.AddScoped<ICriteriaRepository, CriteriaRepository>();
+        services.AddScoped<IDisciplineRepository, DisciplineRepository>();
+        services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+        services.AddScoped<ITeacherRepository, TeacherRepository>();
+        services.AddScoped<IWorkloadRepository, WorkloadRepository>();
+
+        // Mappers
+        services.AddSingleton<Application.Common.Mappings.CriteriaMapper>();
+        services.AddSingleton<Application.Common.Mappings.DisciplineMapper>();
+        services.AddSingleton<Application.Common.Mappings.FeedbackMapper>();
+        services.AddSingleton<Application.Common.Mappings.TeacherMapper>();
+        services.AddSingleton<Application.Common.Mappings.WorkloadMapper>();
 
         return services;
     }

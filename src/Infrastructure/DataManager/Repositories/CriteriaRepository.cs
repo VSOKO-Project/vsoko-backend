@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Mappings;
 using Application.Common.Exceptions;
 using Application.Interfaces.DataManager.Repositories;
 using Domain.Entities;
@@ -11,17 +12,27 @@ namespace Infrastructure.DataManager.Repositories;
 public class CriteriaRepository : ICriteriaRepository
 {
     private readonly AppDbContext _dbContext;
+    private readonly CriteriaMapper _mapper;
 
-    public CriteriaRepository(AppDbContext dbContext)
+    public CriteriaRepository(AppDbContext dbContext, CriteriaMapper mapper)
     {
         _dbContext = dbContext;
+        _mapper = mapper;
     }
 
     public async Task<List<CriteriaDto>> GetAllCriteria(CancellationToken cancellationToken)
     {
-        return await _dbContext
-            .Criterias.Select(w => new CriteriaDto { Name = w.Name, Id = w.Id , Object = w.Object})
-            .ToListAsync(cancellationToken);
+        return await _mapper.ProjectToDto(_dbContext.Criterias).ToListAsync(cancellationToken);
+    }
+
+    public async Task<CriteriaDto> GetCriteriaById(string id, CancellationToken cancellationToken)
+    {
+        var criteria = await _dbContext.Criterias.FindAsync(id, cancellationToken);
+
+        if (criteria is null)
+            throw new NotFoundException(nameof(Criteria), id);
+
+        return _mapper.MapSingle(criteria);
     }
 
     public async Task<CriteriaDto> PostCriteria(
@@ -36,12 +47,7 @@ public class CriteriaRepository : ICriteriaRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new CriteriaDto
-        {
-            Name = newCriteria.Name,
-            Id = newCriteria.Id,
-            Object = newCriteria.Object
-        };
+        return _mapper.MapSingle(newCriteria);
     }
 
     public async Task DeleteCriteria(string id, CancellationToken cancellationToken)
@@ -72,11 +78,6 @@ public class CriteriaRepository : ICriteriaRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new CriteriaDto
-        {
-            Id = criteria.Id,
-            Name = criteria.Name,
-            Object = criteria.Object
-        };
+        return _mapper.MapSingle(criteria);
     }
 }

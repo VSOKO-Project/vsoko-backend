@@ -8,6 +8,7 @@ namespace Application.Interfaces.DataManager.Repositories;
 public interface ICriteriaRepository : IRepository<Criteria>
 {
     public Task<List<CriteriaDto>> GetAllCriteria(CancellationToken cancellationToken);
+    public Task<CriteriaDto> GetCriteriaById(string id, CancellationToken cancellationToken);
     public Task<CriteriaDto> PostCriteria(
         string? name,
         CriteriaObject criteriaObject,

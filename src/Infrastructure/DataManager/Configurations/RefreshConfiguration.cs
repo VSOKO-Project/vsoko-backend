@@ -13,7 +13,7 @@ public class RefreshConfiguration : BaseEntityConfiguration<Refresh>
 
         builder.Property(w => w.Token).IsRequired();
 
-        builder.HasOne<ApplicationUser>().WithMany(w => w.Refreshes).HasForeignKey(w => w.Id);
+        builder.HasOne<ApplicationUser>().WithMany(w => w.Refreshes).HasForeignKey(w => w.UserId);
 
         builder.Property(w => w.ExpiresAt).IsRequired();
     }

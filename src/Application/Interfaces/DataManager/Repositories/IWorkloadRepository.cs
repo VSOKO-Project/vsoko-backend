@@ -12,4 +12,6 @@ public interface IWorkloadRepository : IRepository<Workload>
         int pageSize,
         CancellationToken cancellationToken
     );
+
+    public Task<WorkloadDto> GetWorkloadById(string id, CancellationToken cancellationToken);
 }

@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Mappings;
 using Application.Common.Results;
 using Application.Interfaces.DataManager.Repositories;
 using Domain.Enums;
@@ -11,10 +12,12 @@ namespace Infrastructure.DataManager.Repositories;
 public class DisciplineRepository : IDisciplineRepository
 {
     private readonly AppDbContext _dbContext;
+    private readonly DisciplineMapper _mapper;
 
-    public DisciplineRepository(AppDbContext dbContext)
+    public DisciplineRepository(AppDbContext dbContext, DisciplineMapper mapper)
     {
         _dbContext = dbContext;
+        _mapper = mapper;
     }
 
     public async Task<PagedResultDto<RatingDto>> GetRating(
@@ -33,21 +36,10 @@ public class DisciplineRepository : IDisciplineRepository
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-        var items = await baseQuery
+        var items = await _mapper.ProjectToRating(baseQuery)
             .OrderBy(x => x.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(t => new RatingDto
-            {
-                Id = t.Id,
-                Name = t.Name,
-                Grade =
-                    t.WorkloadRefs.SelectMany(w => w.FeedbackRefs)
-                        .SelectMany(f => f.CriteriaFeedbackRefs)
-                        .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Discipline)
-                        .Average(cf => (float?)cf.CriteriaScore)
-                    ?? 0f,
-            })
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<RatingDto>

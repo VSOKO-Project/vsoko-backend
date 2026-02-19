@@ -5,6 +5,7 @@
 .vscode/
 # dotenv files
 .env
+.agent/
 
 # User-specific files
 *.rsuser
