@@ -57,6 +57,7 @@ public class CriteriaController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize]
     [ProducesResponseType(typeof(List<CriteriaDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<List<CriteriaDto>> GetAll()
@@ -65,6 +66,7 @@ public class CriteriaController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [Authorize]
     [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]

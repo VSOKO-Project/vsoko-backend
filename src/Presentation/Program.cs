@@ -29,6 +29,14 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT"
     });
+
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("Bearer", doc),
+            new List<string>()
+        }
+    });
 });
 
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -90,6 +98,12 @@ using (var scope = app.Services.CreateScope())
         await roleManager.CreateAsync(new IdentityRole("Admin"));
     if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
         await userManager.AddToRoleAsync(adminUser, "Admin");
+
+    // Seed test data in Development
+    if (app.Environment.IsDevelopment())
+    {
+        await Infrastructure.DataManager.Seeders.DataSeeder.SeedAsync(dbContext, userManager);
+    }
 }
 
 app.UseGlobalExceptionHandler();

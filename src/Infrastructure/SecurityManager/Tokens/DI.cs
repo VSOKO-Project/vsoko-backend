@@ -22,8 +22,10 @@ public static class DI
 
         services
             .AddAuthentication(options =>
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme
-            )
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
             .AddJwtBearer(options =>
             {
                 var tokenSettings = configuration.GetSection("Jwt").Get<TokenSettings>();
