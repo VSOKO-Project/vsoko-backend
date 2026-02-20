@@ -8,5 +8,5 @@ public class Teacher : BaseEntity
     public string Surname { get; set; } = null!;
     public string Patronymic { get; set; } = null!;
 
-    public List<Workload> WorkloadsRefs { get; init; } = new();
+    public List<Workload>? WorkloadsRefs { get; init; }
 }

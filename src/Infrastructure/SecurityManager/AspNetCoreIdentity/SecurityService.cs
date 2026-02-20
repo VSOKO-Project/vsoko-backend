@@ -38,7 +38,7 @@ public class SecurityService : ISecurityService
         var user = await _userManager.FindByNameAsync(login);
 
         if (user is null)
-            throw new NotFoundException(nameof(ApplicationUser));
+            throw new UnauthorizationException("Bad creds");
 
         if (user.IsDeleted == true)
             throw new UnauthorizationException("Deleted!");

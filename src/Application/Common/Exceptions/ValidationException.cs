@@ -14,6 +14,9 @@ public class ValidationException : Exception
         ValidationErrors = failures;
     }
 
+    public ValidationException(string message)
+        : base(message) {}
+
     public static string CreateMessage(IEnumerable<ValidationFailure>? validationErrors)
     {
         if (validationErrors is null || !validationErrors.Any())

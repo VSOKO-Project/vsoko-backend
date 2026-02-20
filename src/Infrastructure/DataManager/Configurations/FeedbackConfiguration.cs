@@ -22,5 +22,9 @@ public class FeedbackConfiguration : BaseEntityConfiguration<Feedback>
             .HasOne(w => w.WorkloadRef)
             .WithMany(w => w.FeedbackRefs)
             .HasForeignKey(w => w.WorkloadId);
+
+        builder
+            .HasIndex(f => new { f.StudentId, f.WorkloadId })
+            .IsUnique();
     }
 }

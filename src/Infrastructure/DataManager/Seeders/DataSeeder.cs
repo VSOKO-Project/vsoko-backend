@@ -15,7 +15,8 @@ public static class DataSeeder
     /// </summary>
     public static async Task SeedAsync(
         AppDbContext db,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole> roleManager)
     {
         if (await db.Teachers.AnyAsync())
             return; // данные уже засеяны
@@ -240,19 +241,61 @@ public static class DataSeeder
                     });
                 }
 
-                // Оценки по критериям дисциплины (1-5)
                 foreach (var c in disciplineCriterias)
                 {
                     db.criteriaFeedbacks.Add(new CriteriaFeedback
                     {
                         CriteriaRef = c,
                         FeedbackRef = feedback,
-                        CriteriaScore = rng.Next(2, 6), // 2-5
+                        CriteriaScore = rng.Next(2, 6),
                     });
                 }
 
                 await db.SaveChangesAsync();
             }
         }
+
+        var adminRole = await db.EmployeeRoles.FirstOrDefaultAsync(r => r.Name == "Admin");
+        if (adminRole == null)
+        {
+            adminRole = new EmployeeRole
+            {
+                Name = "Admin",
+            };
+            db.EmployeeRoles.Add(adminRole);
+            await db.SaveChangesAsync();
+        }
+
+        var adminUser = await userManager.FindByNameAsync("admin");
+        if (adminUser == null)
+        {
+            adminUser = new ApplicationUser
+            {
+                UserName = "admin",
+                Name = "Admin",
+                Surname = "Admin",
+                Type = UserType.Employee,
+                CreatedAt = DateTime.UtcNow,
+            };
+            var result = await userManager.CreateAsync(adminUser, "Admin123!");
+            if (result.Succeeded)
+            {
+                var employee = new Employee
+                {
+                    Id = adminUser.Id,
+                    RoleId = adminRole.Id,
+                };
+                db.Employees.Add(employee);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        if (!await roleManager.RoleExistsAsync("Admin"))
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+        if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+
+        
+        await db.SaveChangesAsync();
     }
 }

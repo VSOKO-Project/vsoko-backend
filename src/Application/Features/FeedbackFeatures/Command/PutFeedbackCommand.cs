@@ -10,7 +10,7 @@ public class PutFeedbackRequest : IRequest<FeedbackDto>
 {
     public string? Id { get; init; }
     public string? Comment { get; init; }
-    public IDictionary<string, int>? Feedback { get; init; }
+    public List<Grades>? Feedback { get; init; }
 }
 
 public class PutFeedbackRequestValidator : AbstractValidator<PutFeedbackRequest>

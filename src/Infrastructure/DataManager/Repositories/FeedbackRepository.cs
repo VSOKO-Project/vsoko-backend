@@ -1,10 +1,13 @@
 using Application.Common.DTOs;
 using Application.Common.Exceptions;
 using Application.Common.Mappings;
+using Application.Features.FeedbackFeatures.Command;
 using Application.Interfaces.DataManager.Repositories;
 using Domain.Entities;
 using Infrastructure.DataManager.Contexts;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Infrastructure.DataManager.Repositories;
 
@@ -19,8 +22,8 @@ public class FeedbackRepository : IFeedbackRepository
         _mapper = mapper;
     }
 
-    public async Task<string> PostFeedback(
-        IDictionary<string, int> grades,
+    public async Task<FeedbackDto> PostFeedback(
+        List<Grades> grades,
         string? comment,
         string workloadId,
         string? studentId,
@@ -39,15 +42,25 @@ public class FeedbackRepository : IFeedbackRepository
 
         var gradeList = grades.Select(w => new CriteriaFeedback
         {
-            CriteriaId = w.Key,
-            CriteriaScore = w.Value,
+            CriteriaId = w.CriteriaId ?? throw new ValidationException("Invalid Criteria Id"),
+            CriteriaScore = w.Grade,
             FeedbackId = feedback.Id,
         }).ToList();
 
         await _dbContext.AddRangeAsync(gradeList, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return feedback.Id;
+        var query = _dbContext.Feedbacks
+            .Include(f => f.CriteriaFeedbackRefs)
+                .ThenInclude(cf => cf.CriteriaRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.DisciplineRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.TeacherRef)
+            .Where(f => f.StudentId == studentId)
+            .Where(w => w.Id == feedback.Id);
+
+        return (await _mapper.ProjectToDto(query).FirstOrDefaultAsync(cancellationToken))!;
     }
 
     public async Task<List<FeedbackDto>> GetFeedbacksByStudentId(
@@ -58,6 +71,10 @@ public class FeedbackRepository : IFeedbackRepository
         var query = _dbContext.Feedbacks
             .Include(f => f.CriteriaFeedbackRefs)
                 .ThenInclude(cf => cf.CriteriaRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.DisciplineRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.TeacherRef)
             .Where(f => f.StudentId == studentId);
 
         return await _mapper.ProjectToDto(query).ToListAsync(cancellationToken);
@@ -72,6 +89,10 @@ public class FeedbackRepository : IFeedbackRepository
         var feedback = await _dbContext.Feedbacks
             .Include(f => f.CriteriaFeedbackRefs)
                 .ThenInclude(cf => cf.CriteriaRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.DisciplineRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.TeacherRef)
             .FirstOrDefaultAsync(f => f.Id == id && f.StudentId == studentId, cancellationToken);
 
         if (feedback is null)
@@ -84,7 +105,7 @@ public class FeedbackRepository : IFeedbackRepository
         string id,
         string studentId,
         string? comment,
-        IDictionary<string, int>? grades,
+        List<Grades>? grades,
         CancellationToken cancellationToken
     )
     {
@@ -100,12 +121,12 @@ public class FeedbackRepository : IFeedbackRepository
 
         if (grades is not null)
         {
-            _dbContext.RemoveRange(feedback.CriteriaFeedbackRefs);
+            _dbContext.RemoveRange(feedback.CriteriaFeedbackRefs!);
 
             var newGrades = grades.Select(w => new CriteriaFeedback
             {
-                CriteriaId = w.Key,
-                CriteriaScore = w.Value,
+                CriteriaId = w.CriteriaId ?? throw new ValidationException("Invalid Criteria Id"),
+                CriteriaScore = w.Grade,
                 FeedbackId = feedback.Id,
             }).ToList();
 
@@ -114,7 +135,17 @@ public class FeedbackRepository : IFeedbackRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return _mapper.MapSingle(feedback);
+        var query = _dbContext.Feedbacks
+            .Include(f => f.CriteriaFeedbackRefs)
+                .ThenInclude(cf => cf.CriteriaRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.DisciplineRef)
+            .Include(f => f.WorkloadRef)
+                .ThenInclude(w => w.TeacherRef)
+            .Where(f => f.StudentId == studentId)
+            .Where(w => w.Id == feedback.Id);
+
+        return (await _mapper.ProjectToDto(query).FirstOrDefaultAsync(cancellationToken))!;
     }
 
     public async Task DeleteFeedback(
@@ -131,5 +162,11 @@ public class FeedbackRepository : IFeedbackRepository
 
         feedback.IsDeleted = true;
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> HasFeedbackAsync(string studentId, string workloadId, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Feedbacks
+            .AnyAsync(f => f.StudentId == studentId && f.WorkloadId == workloadId, cancellationToken);
     }
 }

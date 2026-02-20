@@ -8,8 +8,8 @@ public class Workload : BaseEntity
     public string DisciplineId { get; set; } = null!;
     public string TeacherId { get; set; } = null!;
 
-    public Teacher TeacherRef { get; set; } = null!;
-    public Discipline DisciplineRef { get; set; } = null!;
-    public StudentGroup GroupRef { get; set; } = null!;
-    public List<Feedback> FeedbackRefs { get; init; } = new();
+    public Teacher? TeacherRef { get; set; }
+    public Discipline? DisciplineRef { get; set; }
+    public StudentGroup? GroupRef { get; set; }
+    public List<Feedback>? FeedbackRefs { get; init; }
 }

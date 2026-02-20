@@ -9,6 +9,6 @@ public class Feedback : BaseEntity
     public string WorkloadId { get; set; } = null!;
 
     public Student? StudentRef { get; init; }
-    public Workload WorkloadRef { get; init; } = new();
-    public List<CriteriaFeedback> CriteriaFeedbackRefs { get; init; } = new();
+    public Workload? WorkloadRef { get; init; }
+    public List<CriteriaFeedback>? CriteriaFeedbackRefs { get; init; }
 }

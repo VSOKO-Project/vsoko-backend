@@ -14,6 +14,8 @@ public partial class TeacherMapper
     [MapperIgnoreSource(nameof(Teacher.CreatedById))]
     [MapperIgnoreSource(nameof(Teacher.UpdatedById))]
     [MapperIgnoreSource(nameof(Teacher.WorkloadsRefs))]
+    [MapperIgnoreSource(nameof(Teacher.Name))]
+    [MapperIgnoreSource(nameof(Teacher.Patronymic))]
     [MapProperty(nameof(Teacher.Surname), nameof(RatingDto.Name))]
     public partial RatingDto MapToRating(Teacher teacher);
 

@@ -6,5 +6,5 @@ public class Discipline : BaseEntity
 {
     public string Name { get; set; } = null!;
 
-    public List<Workload> WorkloadRefs { get; init; } = new();
+    public List<Workload>? WorkloadRefs { get; init; }
 }

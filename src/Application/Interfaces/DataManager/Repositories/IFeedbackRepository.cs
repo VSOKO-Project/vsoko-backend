@@ -1,13 +1,14 @@
 using Application.Interfaces.DataManager.Repositories;
 using Application.Common.DTOs;
 using Domain.Entities;
+using Application.Features.FeedbackFeatures.Command;
 
 namespace Application.Interfaces.DataManager.Repositories;
 
 public interface IFeedbackRepository : IRepository<Feedback>
 {
-    public Task<string> PostFeedback(
-        IDictionary<string, int> grades,
+    public Task<FeedbackDto> PostFeedback(
+        List<Grades> grades,
         string? comment,
         string workloadId,
         string? studentId,
@@ -29,7 +30,7 @@ public interface IFeedbackRepository : IRepository<Feedback>
         string id,
         string studentId,
         string? comment,
-        IDictionary<string, int>? grades,
+        List<Grades> grades,
         CancellationToken cancellationToken
     );
 
@@ -38,4 +39,6 @@ public interface IFeedbackRepository : IRepository<Feedback>
         string studentId,
         CancellationToken cancellationToken
     );
+
+    Task<bool> HasFeedbackAsync(string studentId, string workloadId, CancellationToken cancellationToken);
 }
