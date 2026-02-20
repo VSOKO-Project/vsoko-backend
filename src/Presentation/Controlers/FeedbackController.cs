@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Common.Base;
+using Presentation.Common.DTOs;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 
 namespace Presentation.Controllers;
@@ -21,9 +22,16 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<string> Post([FromBody] PostFeedbackRequest request)
+    public async Task<ApiSuccessResult<FeedbackDto>> Post([FromBody] PostFeedbackRequest request)
     {
-        return await _sender.Send(request);
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<FeedbackDto>
+        {
+            Code = Status201Created,
+            Message = "Success",
+            Data = result,
+        };
     }
 
     [HttpGet]
@@ -31,9 +39,16 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(List<FeedbackDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<List<FeedbackDto>> GetAll()
+    public async Task<ApiSuccessResult<List<FeedbackDto>>> GetAll()
     {
-        return await _sender.Send(new GetAllFeedbackQuery());
+        var result = await _sender.Send(new GetAllFeedbackQuery());
+
+        return new ApiSuccessResult<List<FeedbackDto>>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result,
+        };
     }
 
     [HttpGet("{id}")]
@@ -42,9 +57,16 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<FeedbackDto> GetById(string id)
+    public async Task<ApiSuccessResult<FeedbackDto>> GetById(string id)
     {
-        return await _sender.Send(new GetFeedbackByIdQuery(id));
+        var result = await _sender.Send(new GetFeedbackByIdQuery(id));
+
+        return new ApiSuccessResult<FeedbackDto>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result,
+        };
     }
 
     [HttpPut("{id}")]
@@ -54,13 +76,20 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<FeedbackDto> Put(string id, [FromBody] PutFeedbackRequest request)
+    public async Task<ApiSuccessResult<FeedbackDto>> Put(string id, [FromBody] PutFeedbackRequest request)
     {
         if (id != request.Id)
         {
             throw new ArgumentException("Id mismatch");
         }
-        return await _sender.Send(request);
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<FeedbackDto>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result,
+        };
     }
 
     [HttpDelete("{id}")]
@@ -69,8 +98,15 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<Unit> Delete(string id)
+    public async Task<ApiSuccessResult<Unit>> Delete(string id)
     {
-        return await _sender.Send(new DeleteFeedbackRequest { Id = id });
+        await _sender.Send(new DeleteFeedbackRequest { Id = id });
+
+        return new ApiSuccessResult<Unit>
+        {
+            Code = Status204NoContent,
+            Message = "Success",
+            Data = Unit.Value,
+        };
     }
 }

@@ -31,7 +31,7 @@ public class SecurityController : BaseApiController
 
         return new ApiSuccessResult<LoginResultDto>
         {
-            Code = StatusCodes.Status200OK,
+            Code = Status200OK,
             Message = "Success",
             Data = result,
         };
@@ -51,7 +51,7 @@ public class SecurityController : BaseApiController
 
         return new ApiSuccessResult<LoginResultDto>
         {
-            Code = StatusCodes.Status200OK,
+            Code = Status200OK,
             Message = "Success",
             Data = result,
         };

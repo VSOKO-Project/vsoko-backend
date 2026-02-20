@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Common.Base;
+using Presentation.Common.DTOs;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 
 namespace Presentation.Controllers;
@@ -21,9 +22,16 @@ public class WorkloadController : BaseApiController
     [ProducesResponseType(typeof(PagedResultDto<WorkloadDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<PagedResultDto<WorkloadDto>> GetAll([FromQuery] GetAllWorkloadRequest request)
+    public async Task<ApiSuccessResult<PagedResultDto<WorkloadDto>>> GetAll([FromQuery] GetAllWorkloadRequest request)
     {
-        return await _sender.Send(request);
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<PagedResultDto<WorkloadDto>>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
     }
 
     [HttpGet("{id}")]
@@ -32,8 +40,15 @@ public class WorkloadController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<WorkloadDto> GetById(string id)
+    public async Task<ApiSuccessResult<WorkloadDto>> GetById(string id)
     {
-        return await _sender.Send(new GetWorkloadByIdQuery(id));
+        var result = await _sender.Send(new GetWorkloadByIdQuery(id));
+
+        return new ApiSuccessResult<WorkloadDto>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
     }
 }

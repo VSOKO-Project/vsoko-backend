@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Common.Base;
+using Presentation.Common.DTOs;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 
 namespace Presentation.Controllers;
@@ -16,12 +17,19 @@ public class DisciplinesController : BaseApiController
     public DisciplinesController(ISender sender) : base(sender) { }
 
     [HttpGet("rating")]
-    [Authorize]
+    [Authorize(Roles ="Admin")]
     [ProducesResponseType(typeof(PagedResultDto<RatingDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<PagedResultDto<RatingDto>> GetRating([FromQuery] GetDisciplineRatingRequest request)
+    public async Task<ApiSuccessResult<PagedResultDto<RatingDto>>> GetRating([FromQuery] GetDisciplineRatingRequest request)
     {
-        return await _sender.Send(request);
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<PagedResultDto<RatingDto>>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
     }
 }

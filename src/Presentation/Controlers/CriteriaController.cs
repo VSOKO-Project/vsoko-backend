@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Common.Base;
+using Presentation.Common.DTOs;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 
 namespace Presentation.Controllers;
@@ -15,19 +16,26 @@ public class CriteriaController : BaseApiController
 {
     public CriteriaController(ISender sender) : base(sender) {}
 
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles ="Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<CriteriaDto> Post(PostCriteriaCommandRequest request)
+    public async Task<ApiSuccessResult<CriteriaDto>> Post(PostCriteriaCommandRequest request)
     {
-        return await _sender.Send(request);
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<CriteriaDto>
+        {
+            Code = Status201Created,
+            Message = "Success",
+            Data = result,
+        };
     }
 
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles ="Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
@@ -35,34 +43,55 @@ public class CriteriaController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<CriteriaDto> Put(string id, PutCriteriaCommandRequest request)
+    public async Task<ApiSuccessResult<CriteriaDto>> Put(string id, PutCriteriaCommandRequest request)
     {
         if (id != request.Id)
         {
             throw new ArgumentException("Id mismatch");
         }
-        return await _sender.Send(request);
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<CriteriaDto>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result,
+        };
     }
 
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles ="Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(Unit), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<Unit> Delete(string id)
+    public async Task<ApiSuccessResult<Unit>> Delete(string id)
     {
-        return await _sender.Send(new DeleteCriteriaCommandRequest { Id = id });
+        await _sender.Send(new DeleteCriteriaCommandRequest { Id = id });
+
+        return new ApiSuccessResult<Unit>
+        {
+            Code = Status204NoContent,
+            Message = "Success",
+            Data = Unit.Value,
+        };
     }
 
     [HttpGet]
     [Authorize]
     [ProducesResponseType(typeof(List<CriteriaDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<List<CriteriaDto>> GetAll()
+    public async Task<ApiSuccessResult<List<CriteriaDto>>> GetAll()
     {
-        return await _sender.Send(new GetAllCriteriaQuery());
+        var result = await _sender.Send(new GetAllCriteriaQuery());
+
+        return new ApiSuccessResult<List<CriteriaDto>>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result,
+        };
     }
 
     [HttpGet("{id}")]
@@ -70,8 +99,15 @@ public class CriteriaController : BaseApiController
     [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<CriteriaDto> GetById(string id)
+    public async Task<ApiSuccessResult<CriteriaDto>> GetById(string id)
     {
-        return await _sender.Send(new GetCriteriaByIdQuery(id));
+        var result = await _sender.Send(new GetCriteriaByIdQuery(id));
+
+        return new ApiSuccessResult<CriteriaDto>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result,
+        };
     }
 }
