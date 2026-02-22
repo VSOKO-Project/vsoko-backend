@@ -27,6 +27,12 @@ public static class GlobalExceptionHandler
                         Status = Status400BadRequest,
                         Detail = e.Message,
                     },
+                    Application.Common.Exceptions.UnauthorizationException e => new ProblemDetails
+                    {
+                        Title = "Unauthorization Exception",
+                        Status = Status401Unauthorized,
+                        Detail = e.Message,
+                    },
                     Application.Common.Exceptions.ValidationException e => new ProblemDetails
                     {
                         Title = "Validation Exception",

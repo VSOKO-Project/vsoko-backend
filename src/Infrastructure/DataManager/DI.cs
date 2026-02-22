@@ -16,26 +16,38 @@ public static class DI
         IConfiguration configuration
     )
     {
-        var conectionstring = configuration.GetConnectionString("Database");
+        var connectionString = configuration.GetConnectionString("Database");
 
-        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(conectionstring));
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException("Connection string 'DefaultConnection' is not found.");
+        }
+
+        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-        // Repositories
         services.AddScoped<ICriteriaRepository, CriteriaRepository>();
         services.AddScoped<IDisciplineRepository, DisciplineRepository>();
         services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<ITeacherRepository, TeacherRepository>();
         services.AddScoped<IWorkloadRepository, WorkloadRepository>();
 
-        // Mappers
         services.AddSingleton<Application.Common.Mappings.CriteriaMapper>();
         services.AddSingleton<Application.Common.Mappings.DisciplineMapper>();
         services.AddSingleton<Application.Common.Mappings.FeedbackMapper>();
         services.AddSingleton<Application.Common.Mappings.TeacherMapper>();
         services.AddSingleton<Application.Common.Mappings.WorkloadMapper>();
 
+        services.AddHealthChecks()
+            .AddNpgSql(
+                connectionString: connectionString,
+                name: "PostgreSQL Database",
+                healthQuery: "SELECT 1;",
+                tags: new[] { "db", "ready" },
+                timeout: TimeSpan.FromSeconds(3)
+            );
+        
         return services;
     }
 }

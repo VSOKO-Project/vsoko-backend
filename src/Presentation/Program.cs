@@ -1,15 +1,14 @@
 using Application;
-using Domain.Entities;
-using Domain.Enums;
 using Infrastructure;
 using Infrastructure.DataManager.Contexts;
 using Infrastructure.SecurityManager.AspNetCoreIdentity;
 using Infrastructure.SecurityManager.Tokens;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using System.Text.Json.Serialization;
 using Presentation.Common.Middlewares;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,5 +75,35 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        
+        var response = new
+        {
+            Status = report.Status.ToString(),
+            Checks = report.Entries.Select(e => new
+            {
+                Component = e.Key,
+                Status = e.Value.Status.ToString(),
+                Description = e.Value.Description,
+                Duration = e.Value.Duration.ToString()
+            }),
+            TotalDuration = report.TotalDuration
+        };
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+    }
+});
 
 app.Run();

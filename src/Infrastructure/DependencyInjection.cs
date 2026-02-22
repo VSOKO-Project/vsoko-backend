@@ -1,4 +1,5 @@
 using Application.Interfaces.SecurityManager;
+using Infrastructure.CachingManager;
 using Infrastructure.DataManager;
 using Infrastructure.SecurityManager.AspNetCoreIdentity;
 using Infrastructure.SecurityManager.Tokens;
@@ -21,6 +22,8 @@ public static class DependencyInjection
         services.ApplyTokenManager(configuration);
 
         services.AddTransient<ISecurityService, SecurityService>();
+
+        services.AddCaching(configuration);
 
         return services;
     }

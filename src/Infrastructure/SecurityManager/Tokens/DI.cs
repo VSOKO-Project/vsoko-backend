@@ -18,7 +18,7 @@ public static class DI
         IConfiguration configuration
     )
     {
-        services.Configure<TokenSettings>(configuration.GetSection("Jwt"));
+        services.Configure<TokenSettings>(configuration.GetSection(TokenSettings.SectionName));
 
         services
             .AddAuthentication(options =>
@@ -28,7 +28,7 @@ public static class DI
             })
             .AddJwtBearer(options =>
             {
-                var tokenSettings = configuration.GetSection("Jwt").Get<TokenSettings>();
+                var tokenSettings = configuration.GetSection(TokenSettings.SectionName).Get<TokenSettings>();
 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
