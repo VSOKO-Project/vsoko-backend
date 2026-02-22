@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Data;
+using Application.Common.Caching;
 using Application.Common.DTOs;
 using Application.Common.Results;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
@@ -28,10 +30,12 @@ public class GetTeachersRatingRequestHandler
     : IRequestHandler<GetTeachersRatingRequest, PagedResultDto<RatingDto>>
 {
     private readonly ITeacherRepository _teacherRepository;
+    private readonly ICacheService _cacheService;
 
-    public GetTeachersRatingRequestHandler(ITeacherRepository teacherRepository)
+    public GetTeachersRatingRequestHandler(ITeacherRepository teacherRepository, ICacheService cacheService)
     {
         _teacherRepository = teacherRepository;
+        _cacheService = cacheService;
     }
 
     public async Task<PagedResultDto<RatingDto>> Handle(
@@ -39,11 +43,9 @@ public class GetTeachersRatingRequestHandler
         CancellationToken cancellationToken
     )
     {
-        return await _teacherRepository.GetRating(
-            request.Page,
-            request.Query ?? "",
-            request.PageSize,
-            cancellationToken
-        );
+        var key = CacheKeys.Teacher.All;
+        var tag = CacheKeys.Teacher.ListTag;
+
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _teacherRepository.GetRating(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
     }
 }

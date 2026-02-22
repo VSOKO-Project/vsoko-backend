@@ -1,9 +1,11 @@
 using System.Security.Cryptography.X509Certificates;
 using Application.Common.DTOs;
 using Application.Common.Results;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
+using Application.Common.Caching;
 
 namespace Application.Features.DisciplineFeatures.Query;
 
@@ -27,10 +29,12 @@ public class GetDisciplineRatingRequestHandler
     : IRequestHandler<GetDisciplineRatingRequest, PagedResultDto<RatingDto>>
 {
     private readonly IDisciplineRepository _disciplineRepository;
+    private readonly ICacheService _cacheService;
 
-    public GetDisciplineRatingRequestHandler(IDisciplineRepository disciplineRepository)
+    public GetDisciplineRatingRequestHandler(IDisciplineRepository disciplineRepository, ICacheService cacheService)
     {
         _disciplineRepository = disciplineRepository;
+        _cacheService = cacheService;
     }
 
     public async Task<PagedResultDto<RatingDto>> Handle(
@@ -38,11 +42,9 @@ public class GetDisciplineRatingRequestHandler
         CancellationToken cancellationToken
     )
     {
-        return await _disciplineRepository.GetRating(
-            request.Page,
-            request.Query ?? "",
-            request.PageSize,
-            cancellationToken
-        );
+        var key = CacheKeys.Discipline.All;
+        var tag = CacheKeys.Discipline.ListTag;
+
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _disciplineRepository.GetRating(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
     }
 }

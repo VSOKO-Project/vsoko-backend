@@ -1,9 +1,11 @@
 using System.ComponentModel;
 using Application.Common.DTOs;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using Domain.Enums;
 using FluentValidation;
 using MediatR;
+using Application.Common.Caching;
 
 namespace Application.Features.CriteriaFeatures.Command;
 
@@ -27,10 +29,12 @@ public class PutCriteriaCommandValidator : AbstractValidator<PutCriteriaCommandR
 public class PutCriteriaCommandRequestHandler : IRequestHandler<PutCriteriaCommandRequest, CriteriaDto>
 {
     private readonly ICriteriaRepository _criteriaRepository;
+    private readonly ICacheService _cacheService;
 
-    public PutCriteriaCommandRequestHandler(ICriteriaRepository criteriaRepository)
+    public PutCriteriaCommandRequestHandler(ICriteriaRepository criteriaRepository, ICacheService cacheService)
     {
         _criteriaRepository = criteriaRepository;
+        _cacheService = cacheService;
     }
 
     public async Task<CriteriaDto> Handle(
@@ -38,6 +42,12 @@ public class PutCriteriaCommandRequestHandler : IRequestHandler<PutCriteriaComma
         CancellationToken cancellationToken
     )
     {
+        var key = CacheKeys.Criteria.ListTag;
+        var key_single = CacheKeys.Criteria.GetById(request.Id!);
+
+        await _cacheService.RemoveByTagAsync(key, cancellationToken);
+        await _cacheService.RemoveAsync(key_single);
+
         return await _criteriaRepository.PutCriteria(
             request.Id!,
             request.Name,

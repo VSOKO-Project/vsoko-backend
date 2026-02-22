@@ -49,14 +49,10 @@ public class SecurityService : ISecurityService
         var result = await _signInManager.PasswordSignInAsync(user, password, true, false);
 
         if (result.IsLockedOut)
-        {
             throw new UnauthorizationException("Invalid login cerdinals. IsLockedOut.");
-        }
 
         if (!result.Succeeded)
-        {
             throw new UnauthorizationException("Invalid login cerdinals. Not Succeeded.");
-        }
 
         var (token, expires) = await _tokenService.GenerateJwtToken(user, cancellationToken);
         var (refreshToken, refreshExpires) = _tokenService.GenerateRefreshToken();
@@ -87,21 +83,23 @@ public class SecurityService : ISecurityService
         CancellationToken cancellationToken
     )
     {
-        var oldRefesh = await _context.Refreshes.FirstOrDefaultAsync(w => w.Token.Equals(refresh));
+        var oldRefesh = await _context.Refreshes.FirstOrDefaultAsync(w => w.Token.Equals(refresh) && w.ExpiresAt > DateTime.UtcNow, cancellationToken);
 
         if (oldRefesh is null)
-        {
             throw new UnauthorizationException("Invalid Refresh");
-        }
 
         oldRefesh.IsDeleted = true;
 
         var user = await _userManager.FindByIdAsync(oldRefesh.UserId);
 
         if (user is null)
-        {
-            throw new UnauthorizationException("User not found");
-        }
+            throw new UnauthorizationException("Bad creds");
+
+        if (user.IsDeleted == true)
+            throw new UnauthorizationException("Deleted!");
+
+        if (user.IsBlocked == true)
+            throw new UnauthorizationException("Blocked!");
 
         var (token, expires) = await _tokenService.GenerateJwtToken(user, cancellationToken);
         var (refreshToken, refreshExpires) = _tokenService.GenerateRefreshToken();
@@ -125,5 +123,17 @@ public class SecurityService : ISecurityService
             UserId = user.Id,
             IsAdmin = await _userManager.IsInRoleAsync(user, "Admin"),
         };
+    }
+
+    public async Task LogOut(string refreshToken, CancellationToken cancellationToken)
+    {
+        var oldRefesh = await _context.Refreshes.FirstOrDefaultAsync(w => w.Token.Equals(refreshToken));
+
+        if (oldRefesh is null)
+            throw new UnauthorizationException("Invalid Refresh");
+
+        oldRefesh.IsDeleted = true;
+
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }

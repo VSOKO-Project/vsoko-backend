@@ -1,5 +1,7 @@
+using Application.Common.Caching;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using MediatR;
 
@@ -11,19 +13,23 @@ public class GetFeedbackByIdQueryHandler : IRequestHandler<GetFeedbackByIdQuery,
 {
     private readonly IFeedbackRepository _feedbackRepository;
     private readonly IUserContext _userContext;
+    private readonly ICacheService _cacheService;
 
-    public GetFeedbackByIdQueryHandler(IFeedbackRepository feedbackRepository, IUserContext userContext)
+    public GetFeedbackByIdQueryHandler(IFeedbackRepository feedbackRepository, IUserContext userContext, ICacheService cacheService)
     {
         _feedbackRepository = feedbackRepository;
         _userContext = userContext;
+        _cacheService = cacheService;
     }
 
     public async Task<FeedbackDto> Handle(GetFeedbackByIdQuery request, CancellationToken cancellationToken)
     {
-        return await _feedbackRepository.GetFeedbackById(
-            request.Id,
-            _userContext.UserId ?? throw new UnauthorizedAccessException(),
-            cancellationToken
-        );
+        var userId = _userContext.UserId ?? throw new UnauthorizedAccessException();
+        var key = CacheKeys.Feedback.GetById(request.Id, userId);
+
+        return (await _cacheService.GetOrCreateAsync(
+            key,
+            async (ct) => await _feedbackRepository.GetFeedbackById(request.Id, userId, ct),
+            cancellationToken: cancellationToken))!;
     }
 }

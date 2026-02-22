@@ -28,6 +28,8 @@ public static class DI
             })
             .AddJwtBearer(options =>
             {
+                options.MapInboundClaims = false;
+
                 var tokenSettings = configuration.GetSection(TokenSettings.SectionName).Get<TokenSettings>();
 
                 options.TokenValidationParameters = new TokenValidationParameters

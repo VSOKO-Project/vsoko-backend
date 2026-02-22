@@ -11,4 +11,6 @@ public interface ISecurityService
     );
 
     public Task<LoginResultDto> RefreshToken(string refresh, CancellationToken cancellationToken);
+
+    public Task LogOut(string refresh, CancellationToken cancellationToken);
 }

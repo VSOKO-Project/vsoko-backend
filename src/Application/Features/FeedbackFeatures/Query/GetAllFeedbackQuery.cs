@@ -1,5 +1,7 @@
+using Application.Common.Caching;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using MediatR;
 
@@ -11,18 +13,25 @@ public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, L
 {
     private readonly IFeedbackRepository _feedbackRepository;
     private readonly IUserContext _userContext;
+    private readonly ICacheService _cacheService;
 
-    public GetAllFeedbackQueryHandler(IFeedbackRepository feedbackRepository, IUserContext userContext)
+    public GetAllFeedbackQueryHandler(IFeedbackRepository feedbackRepository, IUserContext userContext, ICacheService cacheService)
     {
         _feedbackRepository = feedbackRepository;
         _userContext = userContext;
+        _cacheService = cacheService;
     }
 
     public async Task<List<FeedbackDto>> Handle(GetAllFeedbackQuery request, CancellationToken cancellationToken)
     {
-        return await _feedbackRepository.GetFeedbacksByStudentId(
-            _userContext.UserId ?? throw new UnauthorizedAccessException(),
-            cancellationToken
-        );
+        var userId = _userContext.UserId ?? throw new UnauthorizedAccessException();
+        var key = CacheKeys.Feedback.GetByStudent(userId);
+        var tag = CacheKeys.Feedback.ListTag(userId);
+
+        return (await _cacheService.GetOrCreateAsync(
+            key,
+            async (ct) => await _feedbackRepository.GetFeedbacksByStudentId(userId, ct),
+            [tag],
+            cancellationToken))!;
     }
 }

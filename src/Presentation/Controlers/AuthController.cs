@@ -56,4 +56,23 @@ public class SecurityController : BaseApiController
             Data = result,
         };
     }
+
+    [AllowAnonymous]
+    [HttpPost("LogOut")]
+    [ProducesResponseType(typeof(ApiSuccessResult<Unit>), Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
+    public async Task<ApiSuccessResult<Unit>> LogOut(
+        LogOutQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        await _sender.Send(query, cancellationToken);
+
+        return new ApiSuccessResult<Unit>
+        {
+            Code = Status204NoContent,
+            Message = "Success"
+        };
+    }   
 }

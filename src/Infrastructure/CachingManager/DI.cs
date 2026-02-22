@@ -1,7 +1,7 @@
-using Infrastructure.CachingManager;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Application.Interfaces.CachingManager;
 
 namespace Infrastructure.CachingManager;
 
@@ -35,6 +35,16 @@ public static class DependencyInjection
                 Expiration = TimeSpan.FromMinutes(cacheSettings.DistributedExpirationMinutes)
             };
         });
+
+        services.AddSingleton<ICacheService, CacheService>();
+
+        services.AddHealthChecks()
+        .AddRedis(
+            redisConnectionString: redisConnectionString,
+            name: "Redis Cache",
+            tags: new[] { "cache", "ready" },
+            timeout: TimeSpan.FromSeconds(3)
+        );
 
         return services;
     }

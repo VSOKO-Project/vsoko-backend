@@ -2,6 +2,8 @@ using System.ComponentModel;
 using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
+using Application.Interfaces.CachingManager;
+using Application.Common.Caching;
 
 namespace Application.Features.CriteriaFeatures.Command;
 
@@ -22,10 +24,12 @@ public class DeleteCriteriaCommandRequestHandler
     : IRequestHandler<DeleteCriteriaCommandRequest, Unit>
 {
     private readonly ICriteriaRepository _criteriaRepository;
+    private readonly ICacheService _cacheService;
 
-    public DeleteCriteriaCommandRequestHandler(ICriteriaRepository criteriaRepository)
+    public DeleteCriteriaCommandRequestHandler(ICriteriaRepository criteriaRepository, ICacheService cacheService)
     {
         _criteriaRepository = criteriaRepository;
+        _cacheService = cacheService;
     }
 
     public async Task<Unit> Handle(
@@ -33,7 +37,12 @@ public class DeleteCriteriaCommandRequestHandler
         CancellationToken cancellationToken
     )
     {
+        string key = CacheKeys.Criteria.GetById(request.Id!);
+
+        await _cacheService.RemoveAsync(key, cancellationToken);
+
         await _criteriaRepository.DeleteCriteria(request.Id!, cancellationToken);
+        
         return Unit.Value;
     }
 }

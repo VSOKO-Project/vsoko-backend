@@ -1,5 +1,7 @@
+using Application.Common.Caching;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
@@ -25,15 +27,23 @@ public class PutFeedbackRequestHandler : IRequestHandler<PutFeedbackRequest, Fee
 {
     private readonly IFeedbackRepository _feedbackRepository;
     private readonly IUserContext _userContext;
+    private readonly ICacheService _cacheService;
 
-    public PutFeedbackRequestHandler(IFeedbackRepository feedbackRepository, IUserContext userContext)
+    public PutFeedbackRequestHandler(IFeedbackRepository feedbackRepository, IUserContext userContext, ICacheService cacheService)
     {
         _feedbackRepository = feedbackRepository;
         _userContext = userContext;
+        _cacheService = cacheService;
     }
 
     public async Task<FeedbackDto> Handle(PutFeedbackRequest request, CancellationToken cancellationToken)
     {
+        var userId = _userContext.UserId ?? throw new UnauthorizedAccessException();
+        var key = CacheKeys.Feedback.GetById(request.Id!, userId);
+
+        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(userId), cancellationToken);
+        await _cacheService.RemoveAsync(key);
+
         return await _feedbackRepository.PutFeedback(
             request.Id!,
             _userContext.UserId ?? throw new UnauthorizedAccessException(),

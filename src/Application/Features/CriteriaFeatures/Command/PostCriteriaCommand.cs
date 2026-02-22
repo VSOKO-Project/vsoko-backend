@@ -1,9 +1,12 @@
 using System.ComponentModel;
 using Application.Common.DTOs;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using Domain.Enums;
 using FluentValidation;
 using MediatR;
+using Application.Common.Caching;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Application.Features.CriteriaFeatures.Command;
 
@@ -25,10 +28,12 @@ public class PostCriteriaCommandValidator : AbstractValidator<PostCriteriaComman
 public class PostCriteriaCommandRequestHandler : IRequestHandler<PostCriteriaCommandRequest, CriteriaDto>
 {
     private readonly ICriteriaRepository _criteriaRepository;
+    private readonly ICacheService _cacheService;
 
-    public PostCriteriaCommandRequestHandler(ICriteriaRepository criteriaRepository)
+    public PostCriteriaCommandRequestHandler(ICriteriaRepository criteriaRepository, ICacheService cacheService)
     {
         _criteriaRepository = criteriaRepository;
+        _cacheService = cacheService;
     }
 
     public async Task<CriteriaDto> Handle(
@@ -36,10 +41,16 @@ public class PostCriteriaCommandRequestHandler : IRequestHandler<PostCriteriaCom
         CancellationToken cancellationToken
     )
     {
-        return await _criteriaRepository.PostCriteria(
+        var key = CacheKeys.Criteria.ListTag;
+
+        var result = await _criteriaRepository.PostCriteria(
             request.Name,
             request.criteriaObject,
             cancellationToken
         );
+
+        await _cacheService.RemoveByTagAsync(key, cancellationToken);
+
+        return result;
     }
 }

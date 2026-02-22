@@ -1,6 +1,8 @@
 using System.Data;
+using Application.Common.Caching;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
+using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
@@ -34,14 +36,17 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
 {
     private readonly IFeedbackRepository _feedbackRepository;
     private readonly IUserContext _userContext;
+    private readonly ICacheService _cacheService;
 
     public PostFeedbackRequestHandler(
         IFeedbackRepository feedbackRepository,
-        IUserContext userContext
+        IUserContext userContext,
+        ICacheService cacheService
     )
     {
         _feedbackRepository = feedbackRepository;
         _userContext = userContext;
+        _cacheService = cacheService;
     }
 
     public async Task<FeedbackDto> Handle(
@@ -59,12 +64,16 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
             throw new Application.Common.Exceptions.ValidationException("Вы уже оставляли отзыв на эту дисциплину.");
         }
 
-        return await _feedbackRepository.PostFeedback(
+        var result = await _feedbackRepository.PostFeedback(
             request.Feedback!,
             request.Comment,
             request.workloadId!,
             _userContext.UserId,
             cancellationToken
         );
+
+        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(_userContext.UserId), cancellationToken);
+
+        return result;
     }
 }
