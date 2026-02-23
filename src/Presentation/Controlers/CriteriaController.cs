@@ -16,7 +16,7 @@ public class CriteriaController : BaseApiController
 {
     public CriteriaController(ISender sender) : base(sender) {}
 
-    [Authorize(Roles ="Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
@@ -35,7 +35,7 @@ public class CriteriaController : BaseApiController
         };
     }
 
-    [Authorize(Roles ="Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
@@ -59,7 +59,7 @@ public class CriteriaController : BaseApiController
         };
     }
 
-    [Authorize(Roles ="Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(Unit), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
@@ -81,6 +81,7 @@ public class CriteriaController : BaseApiController
     [HttpGet]
     [Authorize]
     [ProducesResponseType(typeof(List<CriteriaDto>), Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<List<CriteriaDto>>> GetAll()
     {
@@ -98,6 +99,7 @@ public class CriteriaController : BaseApiController
     [Authorize]
     [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)] 
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<CriteriaDto>> GetById(string id)
     {

@@ -21,6 +21,7 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(string), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<FeedbackDto>> Post([FromBody] PostFeedbackRequest request)
     {
@@ -38,6 +39,7 @@ public class FeedbackController : BaseApiController
     [Authorize]
     [ProducesResponseType(typeof(List<FeedbackDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<List<FeedbackDto>>> GetAll()
     {
@@ -56,6 +58,7 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(FeedbackDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<FeedbackDto>> GetById(string id)
     {
@@ -75,6 +78,7 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<FeedbackDto>> Put(string id, [FromBody] PutFeedbackRequest request)
     {
@@ -97,6 +101,7 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(Unit), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<Unit>> Delete(string id)
     {

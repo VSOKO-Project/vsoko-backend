@@ -21,6 +21,7 @@ public class WorkloadController : BaseApiController
     [Authorize]
     [ProducesResponseType(typeof(PagedResultDto<WorkloadDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<PagedResultDto<WorkloadDto>>> GetAll([FromQuery] GetAllWorkloadRequest request)
     {
@@ -39,6 +40,7 @@ public class WorkloadController : BaseApiController
     [ProducesResponseType(typeof(WorkloadDto), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<WorkloadDto>> GetById(string id)
     {

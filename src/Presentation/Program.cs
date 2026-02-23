@@ -9,6 +9,9 @@ using System.Text.Json.Serialization;
 using Presentation.Common.Middlewares;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
+using QuestPDF.Infrastructure;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +53,7 @@ builder.Services.ApplyUserContext();
 
 var app = builder.Build();
 
+app.UseStaticFiles();
 
 using (var scope = app.Services.CreateScope())
 {
