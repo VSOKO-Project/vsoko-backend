@@ -1,11 +1,9 @@
-using System.Reflection.Metadata;
 using Application.Common.ResultsDto;
 using Application.Interfaces.SecurityManager;
 using FluentValidation;
 using MediatR;
-using Microsoft.AspNetCore.Authentication;
 
-namespace Application.Features.SecurityFeatures.Query;
+namespace Application.Features.SecurityFeatures.Command;
 
 public class RefreshQuery : IRequest<LoginResultDto>
 {

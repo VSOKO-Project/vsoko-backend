@@ -1,5 +1,3 @@
-using Domain.Entities;
-
 namespace Application.Common.DTOs;
 
 public class CriteriaFeedbackDto

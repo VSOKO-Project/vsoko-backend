@@ -6,10 +6,11 @@ using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
 using Application.Common.Caching;
+using Application.Common.CQRS;
 
 namespace Application.Features.DisciplineFeatures.Query;
 
-public class GetDisciplineRatingRequest : IRequest<PagedResultDto<RatingDto>>
+public class GetDisciplineRatingRequest : IRequest<PagedResultDto<RatingDto>>, IQuery
 {
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 10;
@@ -42,7 +43,7 @@ public class GetDisciplineRatingRequestHandler
         CancellationToken cancellationToken
     )
     {
-        var key = CacheKeys.Discipline.All;
+        var key = CacheKeys.Discipline.GetPaged(request.Page, request.PageSize, request.Query ?? "");
         var tag = CacheKeys.Discipline.ListTag;
 
         return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _disciplineRepository.GetRatingAsync(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;

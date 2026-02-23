@@ -1,11 +1,10 @@
-using System.ComponentModel;
 using Application.Common.CQRS;
 using Application.Common.ResultsDto;
 using Application.Interfaces.SecurityManager;
 using FluentValidation;
 using MediatR;
 
-namespace Application.Features.SecurityFeatures.Query;
+namespace Application.Features.SecurityFeatures.Command;
 
 public class LoginQuery : IRequest<LoginResultDto>, IQuery
 {

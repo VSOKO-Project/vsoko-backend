@@ -7,10 +7,11 @@ using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
 using Application.Common.Exceptions;
+using Application.Common.CQRS;
 
 namespace Application.Features.FeedbackFeatures.Command;
 
-public class PostFeedbackRequest : IRequest<FeedbackDto>
+public class PostFeedbackRequest : IRequest<FeedbackDto>, ICommand
 {
     public List<Grades>? Feedback { get; init; }
     public string? Comment { get; init; }
@@ -55,14 +56,11 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
     )
     {
         var hasFeedback = await _feedbackRepository.HasFeedbackAsync(
-            _userContext.UserId, 
             request.workloadId!, 
             cancellationToken);
 
         if (hasFeedback)
-        {
-            throw new Application.Common.Exceptions.ValidationException("Вы уже оставляли отзыв на эту дисциплину.");
-        }
+            throw new Common.Exceptions.ValidationException("Вы уже оставляли отзыв на эту дисциплину.");
 
         var result = await _feedbackRepository.PostFeedback(
             request.Feedback!,
@@ -72,7 +70,9 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
             cancellationToken
         );
 
-        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(_userContext.UserId), cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(_userContext.UserId ?? throw new UnauthorizationException("Invalid token")), cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
 
         return result;
     }

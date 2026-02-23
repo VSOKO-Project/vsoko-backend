@@ -3,10 +3,11 @@ using Application.Interfaces.DataManager.Repositories;
 using MediatR;
 using Application.Common.Caching;
 using Application.Interfaces.CachingManager;
+using Application.Common.CQRS;
 
 namespace Application.Features.CriteriaFeatures.Query;
 
-public class GetAllCriteriaQuery : IRequest<List<CriteriaDto>> { }
+public class GetAllCriteriaQuery : IRequest<List<CriteriaDto>>, IQuery;
 
 public class GetAllCriteriaQueryHandler : IRequestHandler<GetAllCriteriaQuery, List<CriteriaDto>>
 {

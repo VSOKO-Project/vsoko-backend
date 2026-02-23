@@ -7,6 +7,7 @@ using Application.Interfaces.DataManager.Repositories;
 using Infrastructure.DataManager.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
+using Application.Common.Specification.WorkloadSpecification;
 
 namespace Infrastructure.DataManager.Repositories;
 
@@ -61,7 +62,7 @@ public class WorkloadRepository : IWorkloadRepository
         var spec = _accessService.GetSpecification();
 
         var query = spec.Apply(
-            _dbContext.Workloads.Include(w => w.TeacherRef).Include(w => w.DisciplineRef)
+            _dbContext.Workloads.Include(w => w.TeacherRef).Include(w => w.DisciplineRef).Include(w => w.GroupRef)
         );
 
         var workload = await _mapper.WorkloadToDto(query)

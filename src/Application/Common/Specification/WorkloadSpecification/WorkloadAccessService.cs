@@ -6,6 +6,8 @@ using Application.Common.Specification;
 using Application.Common.Specification.WorkloadSpecification;
 using Domain.Entities;
 
+namespace Application.Common.Specification.WorkloadSpecification;
+
 public interface IWorkloadAccessService
 {
     Specification<Workload> GetSpecification();

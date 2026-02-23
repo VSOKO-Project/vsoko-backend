@@ -1,7 +1,7 @@
-using Application.Interfaces.DataManager.Repositories;
 using Application.Common.DTOs;
 using Domain.Entities;
 using Application.Features.FeedbackFeatures.Command;
+using Application.Common.Results;
 
 namespace Application.Interfaces.DataManager.Repositories;
 
@@ -15,20 +15,19 @@ public interface IFeedbackRepository : IRepository<Feedback>
         CancellationToken cancellationToken
     );
 
-    public Task<List<FeedbackDto>> GetFeedbacksByStudentId(
-        string studentId,
+    public Task<PagedResultDto<FeedbackDto>> GetPagedFeedbacks(
+        int page,
+        int pageSize,
         CancellationToken cancellationToken
     );
 
     public Task<FeedbackDto> GetFeedbackById(
         string id,
-        string studentId,
         CancellationToken cancellationToken
     );
 
     public Task<FeedbackDto> PutFeedback(
         string id,
-        string studentId,
         string? comment,
         List<Grades> grades,
         CancellationToken cancellationToken
@@ -36,9 +35,18 @@ public interface IFeedbackRepository : IRepository<Feedback>
 
     public Task DeleteFeedback(
         string id,
-        string studentId,
         CancellationToken cancellationToken
     );
 
-    Task<bool> HasFeedbackAsync(string studentId, string workloadId, CancellationToken cancellationToken);
+    Task<bool> HasFeedbackAsync(string workloadId, CancellationToken cancellationToken);
+
+    public Task<List<string>> GetCommentByDisciplineId(
+        string id,
+        CancellationToken cancellationToken
+    );
+
+    public Task<List<string>> GetCommentByTeacherId(
+        string id,
+        CancellationToken cancellationToken
+    );
 }

@@ -69,4 +69,17 @@ public class DisciplineRepository : IDisciplineRepository
 
         return items;
     }
+
+    public async Task<DisciplineDto> GetByIdAsync(string id, CancellationToken cancellationToken)
+    {
+        var discipline = await _dbContext.Disciplines
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Discipline with id '{id}' not found.");
+
+        return new DisciplineDto
+        {
+            Id = discipline.Id,
+            Name = discipline.Name
+        };
+    }
 }

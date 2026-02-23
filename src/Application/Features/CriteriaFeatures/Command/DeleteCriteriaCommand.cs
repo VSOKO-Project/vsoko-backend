@@ -4,10 +4,11 @@ using FluentValidation;
 using MediatR;
 using Application.Interfaces.CachingManager;
 using Application.Common.Caching;
+using Application.Common.CQRS;
 
 namespace Application.Features.CriteriaFeatures.Command;
 
-public class DeleteCriteriaCommandRequest : IRequest<Unit>
+public class DeleteCriteriaCommandRequest : IRequest<Unit>, ICommand
 {
     public string? Id { get; init; }
 }

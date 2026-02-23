@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Application.Common.DTOs;
 using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
@@ -6,10 +5,11 @@ using Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Application.Common.Caching;
+using Application.Common.CQRS;
 
 namespace Application.Features.CriteriaFeatures.Command;
 
-public class PutCriteriaCommandRequest : IRequest<CriteriaDto>
+public class PutCriteriaCommandRequest : IRequest<CriteriaDto>, ICommand
 {
     public string? Id { get; init; }
     public string? Name { get; init; }

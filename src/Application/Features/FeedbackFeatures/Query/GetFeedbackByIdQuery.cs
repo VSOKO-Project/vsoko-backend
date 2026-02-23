@@ -1,4 +1,5 @@
 using Application.Common.Caching;
+using Application.Common.CQRS;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Interfaces.CachingManager;
@@ -7,7 +8,7 @@ using MediatR;
 
 namespace Application.Features.FeedbackFeatures.Query;
 
-public record GetFeedbackByIdQuery(string Id) : IRequest<FeedbackDto>;
+public record GetFeedbackByIdQuery(string Id) : IRequest<FeedbackDto>, IQuery;
 
 public class GetFeedbackByIdQueryHandler : IRequestHandler<GetFeedbackByIdQuery, FeedbackDto>
 {
@@ -29,7 +30,7 @@ public class GetFeedbackByIdQueryHandler : IRequestHandler<GetFeedbackByIdQuery,
 
         return (await _cacheService.GetOrCreateAsync(
             key,
-            async (ct) => await _feedbackRepository.GetFeedbackById(request.Id, userId, ct),
+            async (ct) => await _feedbackRepository.GetFeedbackById(request.Id, ct),
             cancellationToken: cancellationToken))!;
     }
 }

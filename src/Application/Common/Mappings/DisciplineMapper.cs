@@ -8,6 +8,16 @@ namespace Application.Common.Mappings;
 [Mapper]
 public partial class DisciplineMapper
 {
+    [MapperIgnoreSource(nameof(Discipline.CreatedAtUtc))]
+    [MapperIgnoreSource(nameof(Discipline.UpdatedAtUtc))]
+    [MapperIgnoreSource(nameof(Discipline.IsDeleted))]
+    [MapperIgnoreSource(nameof(Discipline.CreatedById))]
+    [MapperIgnoreSource(nameof(Discipline.UpdatedById))]
+    [MapperIgnoreSource(nameof(Discipline.WorkloadRefs))]
+    public partial DisciplineDto MapSingle(Discipline discipline);
+
+    public partial IQueryable<DisciplineDto> ProjectToDto(IQueryable<Discipline> q);
+
     public IQueryable<RatingDto> ProjectToRating(IQueryable<Discipline> q)
     {
         return q.Select(t => new RatingDto

@@ -1,7 +1,7 @@
 using System.Reflection;
 using Application.Common.Behaviors;
 using Application.Common.Specification.WorkloadSpecification;
-using Application.Interfaces.DataManager.Repositories;
+using Application.Common.Specification.FeedbackSpecification;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +23,7 @@ public static class DependencyInjection
         service.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
         service.AddScoped<IWorkloadAccessService, WorkloadAccessService>();
+        service.AddScoped<IFeedbackAccessService, FeedbackAccessService>();
 
         return service;
     }

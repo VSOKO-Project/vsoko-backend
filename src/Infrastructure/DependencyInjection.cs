@@ -2,6 +2,7 @@ using Application.Interfaces.SecurityManager;
 using Infrastructure.CachingManager;
 using Infrastructure.DataManager;
 using Infrastructure.FileManager;
+using Infrastructure.AIManager;
 using Infrastructure.SecurityManager.AspNetCoreIdentity;
 using Infrastructure.SecurityManager.Tokens;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +28,8 @@ public static class DependencyInjection
         services.AddTransient<ISecurityService, SecurityService>();
 
         services.AddCaching(configuration);
+
+        services.ApplyAiManager(configuration);
 
         return services;
     }

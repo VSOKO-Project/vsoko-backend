@@ -13,18 +13,15 @@ public class ReportService : IReportService
     private readonly ITeacherRepository _teacherRepository;
     private readonly IDisciplineRepository _disciplineRepository;
     private readonly ICriteriaRepository _criteriaRepository;
-    private readonly string _webRootPath;
 
     public ReportService(
         ITeacherRepository teacherRepository, 
         IDisciplineRepository disciplineRepository,
-        ICriteriaRepository criteriaRepository,
-        IWebHostEnvironment env)
+        ICriteriaRepository criteriaRepository)
     {
         _teacherRepository = teacherRepository;
         _disciplineRepository = disciplineRepository;
         _criteriaRepository = criteriaRepository;
-        _webRootPath = env.WebRootPath;
     }
 
     public async Task<byte[]> GenerateReportAsync(CancellationToken cancellationToken)
@@ -37,9 +34,7 @@ public class ReportService : IReportService
         var avgDiscipline = disciplinesRating.Where(x => x.Grade > 0).Select(x => x.Grade).DefaultIfEmpty(0).Average();
         var avgCriteria = criteriaRating.Where(x => x.Grade > 0).Select(x => x.Grade).DefaultIfEmpty(0).Average();
 
-        Console.WriteLine(_webRootPath);
-
-        var logoPath = Path.Combine(_webRootPath, "Images", "slogo.png");
+        var logoPath = Path.Combine(AppContext.BaseDirectory, "FileManager", "Files", "slogo.png");
         
         return Document.Create(container =>
         {

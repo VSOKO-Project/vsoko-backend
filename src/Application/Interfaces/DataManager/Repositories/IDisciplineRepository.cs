@@ -16,4 +16,9 @@ public interface IDisciplineRepository : IRepository<Teacher>
     public Task<List<RatingDto>> GetAllRatingAsync(
         CancellationToken cancellationToken
     );
+
+    public Task<DisciplineDto> GetByIdAsync(
+        string id,
+        CancellationToken cancellationToken
+    );
 }

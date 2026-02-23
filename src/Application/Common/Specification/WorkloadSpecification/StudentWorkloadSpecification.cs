@@ -15,5 +15,5 @@ public class StudentWorkloadSpecification : Specification<Workload>
     }
 
     public override Expression<Func<Workload, bool>> ToExpression() =>
-        w => w.GroupId == _groupId || !w.FeedbackRefs.Any(w => w.StudentId == _id);
+        w => w.GroupId == _groupId && !w.FeedbackRefs.Any(w => w.StudentId == _id);
 }

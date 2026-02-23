@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Application.Common.DTOs;
 using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
@@ -6,11 +5,11 @@ using Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Application.Common.Caching;
-using Microsoft.AspNetCore.Authentication;
+using Application.Common.CQRS;
 
 namespace Application.Features.CriteriaFeatures.Command;
 
-public class PostCriteriaCommandRequest : IRequest<CriteriaDto>
+public class PostCriteriaCommandRequest : IRequest<CriteriaDto>, ICommand
 {
     public string? Name { get; init; }
     public CriteriaObject criteriaObject { get; init; }

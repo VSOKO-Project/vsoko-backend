@@ -1,4 +1,5 @@
 using Application.Common.Caching;
+using Application.Common.CQRS;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Interfaces.CachingManager;
@@ -7,7 +8,7 @@ using MediatR;
 
 namespace Application.Features.WorkloadFeatures.Query;
 
-public record GetWorkloadByIdQuery(string Id) : IRequest<WorkloadDto>;
+public record GetWorkloadByIdQuery(string Id) : IRequest<WorkloadDto>, IQuery;
 
 public class GetWorkloadByIdQueryHandler : IRequestHandler<GetWorkloadByIdQuery, WorkloadDto>
 {
@@ -34,6 +35,7 @@ public class GetWorkloadByIdQueryHandler : IRequestHandler<GetWorkloadByIdQuery,
         return (await _cacheService.GetOrCreateAsync(
             key,
             async (ct) => await _workloadRepository.GetWorkloadById(request.Id, ct),
-            cancellationToken: cancellationToken))!;
+            [CacheKeys.Workload.ListTag],
+            cancellationToken))!;
     }
 }

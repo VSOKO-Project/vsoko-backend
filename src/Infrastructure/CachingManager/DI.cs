@@ -13,14 +13,10 @@ public static class DependencyInjection
     {
         var redisConnectionString = configuration.GetConnectionString("Redis");
         if (string.IsNullOrEmpty(redisConnectionString))
-        {
             throw new InvalidOperationException("Redis connection string is missing.");
-        }
 
         var cacheSettings = new CacheSettings();
         configuration.GetSection(CacheSettings.SectionName).Bind(cacheSettings);
-
-        services.Configure<CacheSettings>(configuration.GetSection(CacheSettings.SectionName));
 
         services.AddStackExchangeRedisCache(options => 
         {

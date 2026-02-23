@@ -50,13 +50,14 @@ public class GetAllWorkloadRequestHandler
     {
         var role = _userContext.Role;
         var groupId = _userContext.StudentGroup;
+        var query = request.Query ?? "";
 
         var key = role == "student" 
-            ? CacheKeys.Workload.GetPagedForStudent(request.Page, request.PageSize, groupId!)
-            : CacheKeys.Workload.GetPaged(request.Page, request.PageSize);
+            ? CacheKeys.Workload.GetPagedForStudent(request.Page, request.PageSize, groupId!, query)
+            : CacheKeys.Workload.GetPaged(request.Page, request.PageSize, query);
             
         var tag = CacheKeys.Workload.ListTag;
 
-        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _workloadRepository.GetPagedWorkload(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _workloadRepository.GetPagedWorkload(request.Page, query, request.PageSize, cancellationToken), [tag], cancellationToken))!;
     }
 }

@@ -5,10 +5,11 @@ using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
+using Application.Common.CQRS;
 
 namespace Application.Features.FeedbackFeatures.Command;
 
-public class PutFeedbackRequest : IRequest<FeedbackDto>
+public class PutFeedbackRequest : IRequest<FeedbackDto>, ICommand
 {
     public string? Id { get; init; }
     public string? Comment { get; init; }
@@ -43,10 +44,11 @@ public class PutFeedbackRequestHandler : IRequestHandler<PutFeedbackRequest, Fee
 
         await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(userId), cancellationToken);
         await _cacheService.RemoveAsync(key);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
 
         return await _feedbackRepository.PutFeedback(
             request.Id!,
-            _userContext.UserId ?? throw new UnauthorizedAccessException(),
             request.Comment,
             request.Feedback,
             cancellationToken

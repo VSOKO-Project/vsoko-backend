@@ -4,10 +4,11 @@ using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
 using FluentValidation;
 using MediatR;
+using Application.Common.CQRS;
 
 namespace Application.Features.FeedbackFeatures.Command;
 
-public class DeleteFeedbackRequest : IRequest<Unit>
+public class DeleteFeedbackRequest : IRequest<Unit>, ICommand
 {
     public string? Id { get; init; }
 }
@@ -40,10 +41,11 @@ public class DeleteFeedbackRequestHandler : IRequestHandler<DeleteFeedbackReques
 
         await _cacheService.RemoveAsync(key, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(userId), cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
 
         await _feedbackRepository.DeleteFeedback(
             request.Id!,
-            _userContext.UserId ?? throw new UnauthorizedAccessException(),
             cancellationToken
         );
         return Unit.Value;

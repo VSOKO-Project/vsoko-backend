@@ -16,6 +16,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.3.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" Version="1.72.0-alpha" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="QuestPDF" Version="2026.2.1" />
   </ItemGroup>
@@ -25,4 +26,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="AIManager\Prompts\**\*.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileManager\Files\**\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

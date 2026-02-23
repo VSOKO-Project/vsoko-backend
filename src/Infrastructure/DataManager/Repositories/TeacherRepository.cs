@@ -67,4 +67,19 @@ public class TeacherRepository : ITeacherRepository
 
         return items;
     }
+
+    public async Task<TeacherDto> GetByIdAsync(string id, CancellationToken cancellationToken)
+    {
+        var teacher = await _dbContext.Teachers
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Teacher with id '{id}' not found.");
+
+        return new TeacherDto
+        {
+            Id = teacher.Id,
+            Name = teacher.Name,
+            Surname = teacher.Surname,
+            Patronymic = teacher.Patronymic
+        };
+    }
 }
