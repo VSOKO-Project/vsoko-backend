@@ -20,11 +20,11 @@ public class TeacherRepository : ITeacherRepository
         _mapper = mapper;
     }
 
-    public async Task<PagedResultDto<RatingDto>> GetRating(
+    public async Task<PagedResultDto<RatingDto>> GetRatingAsync(
         int page,
         string? query,
         int pageSize,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken = default
     )
     {
         var baseQuery = _dbContext
@@ -50,5 +50,21 @@ public class TeacherRepository : ITeacherRepository
             PageSize = pageSize,
             TotalCount = totalCount,
         };
+    }
+
+    public async Task<List<RatingDto>> GetAllRatingAsync(
+        CancellationToken cancellationToken = default
+    )
+    {
+        var baseQuery = _dbContext
+            .Teachers.Include(w => w.WorkloadsRefs)
+                .ThenInclude(w => w.FeedbackRefs)
+                    .ThenInclude(w => w.CriteriaFeedbackRefs)
+                        .ThenInclude(w => w.CriteriaRef);
+
+        var items = await _mapper.ProjectToRating(baseQuery)
+            .ToListAsync(cancellationToken);
+
+        return items;
     }
 }

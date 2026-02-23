@@ -52,7 +52,7 @@ public class GetAllWorkloadRequestHandler
         var groupId = _userContext.StudentGroup;
 
         var key = role == "student" 
-            ? CacheKeys.Workload.GetPagedForStudent(request.Page, request.PageSize, groupId)
+            ? CacheKeys.Workload.GetPagedForStudent(request.Page, request.PageSize, groupId!)
             : CacheKeys.Workload.GetPaged(request.Page, request.PageSize);
             
         var tag = CacheKeys.Workload.ListTag;

@@ -45,6 +45,6 @@ public class GetDisciplineRatingRequestHandler
         var key = CacheKeys.Discipline.All;
         var tag = CacheKeys.Discipline.ListTag;
 
-        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _disciplineRepository.GetRating(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _disciplineRepository.GetRatingAsync(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
     }
 }

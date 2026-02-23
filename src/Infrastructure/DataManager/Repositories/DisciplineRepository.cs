@@ -20,7 +20,7 @@ public class DisciplineRepository : IDisciplineRepository
         _mapper = mapper;
     }
 
-    public async Task<PagedResultDto<RatingDto>> GetRating(
+    public async Task<PagedResultDto<RatingDto>> GetRatingAsync(
         int page,
         string? query,
         int pageSize,
@@ -50,5 +50,23 @@ public class DisciplineRepository : IDisciplineRepository
             PageSize = pageSize,
             TotalCount = totalCount,
         };
+    }
+
+    public async Task<List<RatingDto>> GetAllRatingAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        var baseQuery = _dbContext
+            .Disciplines.Include(w => w.WorkloadRefs)
+                .ThenInclude(w => w.FeedbackRefs)
+                    .ThenInclude(w => w.CriteriaFeedbackRefs)
+                        .ThenInclude(w => w.CriteriaRef);
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        var items = await _mapper.ProjectToRating(baseQuery)
+            .ToListAsync(cancellationToken);
+
+        return items;
     }
 }

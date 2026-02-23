@@ -21,4 +21,7 @@ public interface ICriteriaRepository : IRepository<Criteria>
         CriteriaObject criteriaObject,
         CancellationToken cancellationToken
     );
+        public Task<List<RatingDto>> GetAllRatingAsync(
+        CancellationToken cancellationToken
+    );
 }

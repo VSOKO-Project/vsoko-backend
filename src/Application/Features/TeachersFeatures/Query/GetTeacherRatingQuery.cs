@@ -46,6 +46,6 @@ public class GetTeachersRatingRequestHandler
         var key = CacheKeys.Teacher.All;
         var tag = CacheKeys.Teacher.ListTag;
 
-        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _teacherRepository.GetRating(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _teacherRepository.GetRatingAsync(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
     }
 }

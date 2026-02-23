@@ -80,4 +80,19 @@ public class CriteriaRepository : ICriteriaRepository
 
         return _mapper.MapSingle(criteria);
     }
+
+    public async Task<List<RatingDto>> GetAllRatingAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        var baseQuery = _dbContext
+            .Criterias.Include(w => w.CriteriaFeedbackRefs);
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        var items = await _mapper.ProjectToRating(baseQuery)
+            .ToListAsync(cancellationToken);
+
+        return items;
+    }
 }

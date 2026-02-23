@@ -7,10 +7,13 @@ namespace Application.Interfaces.DataManager.Repositories;
 
 public interface IDisciplineRepository : IRepository<Teacher>
 {
-    public Task<PagedResultDto<RatingDto>> GetRating(
+    public Task<PagedResultDto<RatingDto>> GetRatingAsync(
         int page,
         string query,
         int pageSize,
+        CancellationToken cancellationToken
+    );
+    public Task<List<RatingDto>> GetAllRatingAsync(
         CancellationToken cancellationToken
     );
 }
