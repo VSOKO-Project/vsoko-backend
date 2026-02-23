@@ -1,5 +1,5 @@
 using Application.Common.ResultsDto;
-using Application.Features.SecurityFeatures.Query;
+using Application.Features.SecurityFeatures.Command;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

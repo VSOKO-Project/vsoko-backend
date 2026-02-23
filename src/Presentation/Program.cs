@@ -53,8 +53,6 @@ builder.Services.ApplyUserContext();
 
 var app = builder.Build();
 
-app.UseStaticFiles();
-
 using (var scope = app.Services.CreateScope())
 {
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();

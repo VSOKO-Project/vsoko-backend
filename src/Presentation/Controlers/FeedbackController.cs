@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Results;
 using Application.Features.FeedbackFeatures.Command;
 using Application.Features.FeedbackFeatures.Query;
 using MediatR;
@@ -41,11 +42,11 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<ApiSuccessResult<List<FeedbackDto>>> GetAll()
+    public async Task<ApiSuccessResult<PagedResultDto<FeedbackDto>>> GetAll()
     {
         var result = await _sender.Send(new GetAllFeedbackQuery());
 
-        return new ApiSuccessResult<List<FeedbackDto>>
+        return new ApiSuccessResult<PagedResultDto<FeedbackDto>>
         {
             Code = Status200OK,
             Message = "Success",
