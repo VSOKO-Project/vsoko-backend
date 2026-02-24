@@ -2,6 +2,8 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Interfaces.CachingManager;
+using StackExchange.Redis;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace Infrastructure.CachingManager;
 
@@ -18,9 +20,12 @@ public static class DependencyInjection
         var cacheSettings = new CacheSettings();
         configuration.GetSection(CacheSettings.SectionName).Bind(cacheSettings);
 
+        var multiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
+        services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+
         services.AddStackExchangeRedisCache(options => 
         {
-            options.Configuration = redisConnectionString;
+            options.ConnectionMultiplexerFactory = () => Task.FromResult<IConnectionMultiplexer>(multiplexer);
         });
 
         services.AddHybridCache(options =>
@@ -41,6 +46,10 @@ public static class DependencyInjection
             tags: new[] { "cache", "ready" },
             timeout: TimeSpan.FromSeconds(3)
         );
+
+        services.AddDataProtection()
+            .SetApplicationName("VSOKO.API")
+            .PersistKeysToStackExchangeRedis(multiplexer, "DataProtection-Keys");
 
         return services;
     }

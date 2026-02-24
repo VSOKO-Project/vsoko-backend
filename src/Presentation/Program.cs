@@ -53,17 +53,7 @@ builder.Services.ApplyUserContext();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    if (app.Environment.IsDevelopment())
-    {
-        await Infrastructure.DataManager.Seeders.DataSeeder.SeedAsync(dbContext, userManager, roleManager);
-    }
-}
+await app.Services.InitializeDatabaseAsync();
 
 app.UseGlobalExceptionHandler();
 

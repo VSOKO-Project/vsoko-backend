@@ -19,9 +19,7 @@ public static class DI
         var connectionString = configuration.GetConnectionString("Database");
 
         if (string.IsNullOrEmpty(connectionString))
-        {
             throw new InvalidOperationException("Connection string 'DefaultConnection' is not found.");
-        }
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 

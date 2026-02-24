@@ -209,7 +209,6 @@ public class FeedbackRepository : IFeedbackRepository
         CancellationToken cancellationToken
     )
     {
-
         var query = _dbContext.Feedbacks.Where(w => w.WorkloadRef.DisciplineId.Equals(id));
 
         var comments = await _mapper.ProjectToDto(query).Select(w => w.Comment).ToListAsync(cancellationToken);
