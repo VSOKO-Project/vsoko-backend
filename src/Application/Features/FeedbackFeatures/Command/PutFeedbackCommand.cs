@@ -50,7 +50,7 @@ public class PutFeedbackRequestHandler : IRequestHandler<PutFeedbackRequest, Fee
         return await _feedbackRepository.PutFeedback(
             request.Id!,
             request.Comment,
-            request.Feedback,
+            request.Feedback ?? new List<Grades>(),
             cancellationToken
         );
     }

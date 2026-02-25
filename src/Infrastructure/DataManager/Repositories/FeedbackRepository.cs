@@ -57,11 +57,11 @@ public class FeedbackRepository : IFeedbackRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var query = _dbContext.Feedbacks
-            .Include(f => f.CriteriaFeedbackRefs)
+            .Include(f => f.CriteriaFeedbackRefs!)
                 .ThenInclude(cf => cf.CriteriaRef)
-            .Include(f => f.WorkloadRef)
+            .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.DisciplineRef)
-            .Include(f => f.WorkloadRef)
+            .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.TeacherRef)
             .Where(f => f.StudentId == studentId)
             .Where(w => w.Id == feedback.Id);
@@ -78,13 +78,13 @@ public class FeedbackRepository : IFeedbackRepository
         var spec = _accessService.GetSpecification();
 
         var baseQuery = spec.Apply(_dbContext.Feedbacks
-            .Include(f => f.CriteriaFeedbackRefs)
+            .Include(f => f.CriteriaFeedbackRefs!)
                 .ThenInclude(cf => cf.CriteriaRef)
-            .Include(f => f.WorkloadRef)
+            .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.DisciplineRef)
-            .Include(f => f.WorkloadRef)
+            .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.GroupRef)
-            .Include(f => f.WorkloadRef)
+            .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.TeacherRef));
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
@@ -113,10 +113,10 @@ public class FeedbackRepository : IFeedbackRepository
         var spec = _accessService.GetSpecification();
 
         var query = spec.Apply(_dbContext.Feedbacks
-            .Include(f => f.CriteriaFeedbackRefs).ThenInclude(cf => cf.CriteriaRef)
-            .Include(f => f.WorkloadRef).ThenInclude(w => w.DisciplineRef)
-            .Include(f => f.WorkloadRef).ThenInclude(w => w.GroupRef)
-            .Include(f => f.WorkloadRef).ThenInclude(w => w.TeacherRef));
+            .Include(f => f.CriteriaFeedbackRefs!).ThenInclude(cf => cf.CriteriaRef)
+            .Include(f => f.WorkloadRef!).ThenInclude(w => w.DisciplineRef)
+            .Include(f => f.WorkloadRef!).ThenInclude(w => w.GroupRef)
+            .Include(f => f.WorkloadRef!).ThenInclude(w => w.TeacherRef));
 
         var feedback = await _mapper.ProjectToDto(query).FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
@@ -194,9 +194,9 @@ public class FeedbackRepository : IFeedbackRepository
     )
     {
 
-        var query = _dbContext.Feedbacks.Where(w => w.WorkloadRef.TeacherId.Equals(id));
+        var query = _dbContext.Feedbacks.Where(w => w.WorkloadRef!.TeacherId.Equals(id));
 
-        var comments = await _mapper.ProjectToDto(query).Select(w => w.Comment).ToListAsync(cancellationToken);
+        var comments = await _mapper.ProjectToDto(query).Select(w => w.Comment!).ToListAsync(cancellationToken);
 
         if (comments is null)
             return ["Comment not found"];
@@ -209,9 +209,9 @@ public class FeedbackRepository : IFeedbackRepository
         CancellationToken cancellationToken
     )
     {
-        var query = _dbContext.Feedbacks.Where(w => w.WorkloadRef.DisciplineId.Equals(id));
+        var query = _dbContext.Feedbacks.Where(w => w.WorkloadRef!.DisciplineId.Equals(id));
 
-        var comments = await _mapper.ProjectToDto(query).Select(w => w.Comment).ToListAsync(cancellationToken);
+        var comments = await _mapper.ProjectToDto(query).Select(w => w.Comment!).ToListAsync(cancellationToken);
 
         if (comments is null)
             return ["Comment not found"];

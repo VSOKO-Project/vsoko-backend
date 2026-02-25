@@ -16,6 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - web_network
 
   redis:
     image: redis:latest
@@ -33,6 +35,8 @@ services:
       timeout: 10s
       retries: 5
     restart: unless-stopped
+    networks:
+      - web_network
 
   api:
     build:
@@ -55,7 +59,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vsokoapi.rule=Host(`vsoko-api.semao0.ru`)"
+      - "traefik.http.routers.vsokoapi.entrypoints=websecure"
+      - "traefik.http.routers.vsokoapi.tls.certresolver=semao0resolver"
+      - "traefik.http.services.vsokoapi.loadbalancer.server.port=8080"
+    networks:
+      - web_network
 
 volumes:
   postgres-data:
   redis-data:
+
+networks:
+  web_network:
+    external: false

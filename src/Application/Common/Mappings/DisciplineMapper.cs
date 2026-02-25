@@ -5,7 +5,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Common.Mappings;
 
-[Mapper]
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class DisciplineMapper
 {
     [MapperIgnoreSource(nameof(Discipline.CreatedAtUtc))]
@@ -24,8 +24,8 @@ public partial class DisciplineMapper
         {
             Id = t.Id,
             Name = t.Name,
-            Grade = t.WorkloadRefs.SelectMany(w => w.FeedbackRefs)
-                .SelectMany(f => f.CriteriaFeedbackRefs)
+            Grade = t.WorkloadRefs.SelectMany(w => w.FeedbackRefs ?? new List<Feedback>())
+                .SelectMany(f => f.CriteriaFeedbackRefs ?? new List<CriteriaFeedback>())
                 .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Discipline)
                 .Average(cf => (float?)cf.CriteriaScore) ?? 0f
         });

@@ -28,9 +28,9 @@ public class DisciplineRepository : IDisciplineRepository
     )
     {
         var baseQuery = _dbContext
-            .Disciplines.Include(w => w.WorkloadRefs)
-                .ThenInclude(w => w.FeedbackRefs)
-                    .ThenInclude(w => w.CriteriaFeedbackRefs)
+            .Disciplines.Include(w => w.WorkloadRefs!)
+                .ThenInclude(w => w.FeedbackRefs!)
+                    .ThenInclude(w => w.CriteriaFeedbackRefs!)
                         .ThenInclude(w => w.CriteriaRef)
             .WhereNameOrTeacherContains(query);
 
@@ -57,9 +57,9 @@ public class DisciplineRepository : IDisciplineRepository
     )
     {
         var baseQuery = _dbContext
-            .Disciplines.Include(w => w.WorkloadRefs)
-                .ThenInclude(w => w.FeedbackRefs)
-                    .ThenInclude(w => w.CriteriaFeedbackRefs)
+            .Disciplines.Include(w => w.WorkloadRefs!)
+                .ThenInclude(w => w.FeedbackRefs!)
+                    .ThenInclude(w => w.CriteriaFeedbackRefs!)
                         .ThenInclude(w => w.CriteriaRef);
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);

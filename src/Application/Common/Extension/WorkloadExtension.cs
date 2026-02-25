@@ -15,12 +15,12 @@ public static class WorkloadQueryExtensions
         var term = searchTerm.Trim().ToLower();
 
         return query.Where(d =>
-            d.DisciplineRef.Name.ToLower().Contains(term)
+            d.DisciplineRef!.Name.ToLower().Contains(term)
             || d.TeacherRef!.Name.ToLower().Contains(term)
-            || d.TeacherRef.Surname.ToLower().Contains(term)
-            || d.TeacherRef.Patronymic.ToLower().Contains(term)
-            || (d.TeacherRef.Surname + " " + d.TeacherRef.Name).ToLower().Contains(term)
-            || (d.TeacherRef.Surname + " " + d.TeacherRef.Name + " " + d.TeacherRef.Patronymic)
+            || d.TeacherRef!.Surname.ToLower().Contains(term)
+            || d.TeacherRef!.Patronymic.ToLower().Contains(term)
+            || (d.TeacherRef!.Surname + " " + d.TeacherRef!.Name).ToLower().Contains(term)
+            || (d.TeacherRef!.Surname + " " + d.TeacherRef!.Name + " " + d.TeacherRef!.Patronymic)
                 .ToLower()
                 .Contains(term)
         );

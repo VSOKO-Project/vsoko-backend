@@ -28,9 +28,9 @@ public class TeacherRepository : ITeacherRepository
     )
     {
         var baseQuery = _dbContext
-            .Teachers.Include(w => w.WorkloadsRefs)
-                .ThenInclude(w => w.FeedbackRefs)
-                    .ThenInclude(w => w.CriteriaFeedbackRefs)
+            .Teachers.Include(w => w.WorkloadsRefs!)
+                .ThenInclude(w => w.FeedbackRefs!)
+                    .ThenInclude(w => w.CriteriaFeedbackRefs!)
                         .ThenInclude(w => w.CriteriaRef)
             .WhereNameContains(query);
 
@@ -57,9 +57,9 @@ public class TeacherRepository : ITeacherRepository
     )
     {
         var baseQuery = _dbContext
-            .Teachers.Include(w => w.WorkloadsRefs)
-                .ThenInclude(w => w.FeedbackRefs)
-                    .ThenInclude(w => w.CriteriaFeedbackRefs)
+            .Teachers.Include(w => w.WorkloadsRefs!)
+                .ThenInclude(w => w.FeedbackRefs!)
+                    .ThenInclude(w => w.CriteriaFeedbackRefs!)
                         .ThenInclude(w => w.CriteriaRef);
 
         var items = await _mapper.ProjectToRating(baseQuery)

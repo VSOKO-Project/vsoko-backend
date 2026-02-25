@@ -4,7 +4,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Common.Mappings;
 
-[Mapper]
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class FeedbackMapper
 {
     [UseMapper]

@@ -4,9 +4,18 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Common.Mappings;
 
-[Mapper]
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class WorkloadMapper
 {
+    [UseMapper]
+    private readonly TeacherMapper _teacherMapper = new();
+
+    [UseMapper]
+    private readonly DisciplineMapper _disciplineMapper = new();
+
+    [UseMapper]
+    private readonly StudentGroupMapper _studentGroupMapper = new();
+
     [MapperIgnoreSource(nameof(Workload.GroupId))]
     [MapperIgnoreSource(nameof(Workload.DisciplineId))]
     [MapperIgnoreSource(nameof(Workload.TeacherId))]
