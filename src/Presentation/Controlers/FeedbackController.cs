@@ -42,9 +42,9 @@ public class FeedbackController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<ApiSuccessResult<PagedResultDto<FeedbackDto>>> GetAll()
+    public async Task<ApiSuccessResult<PagedResultDto<FeedbackDto>>> GetAll([FromQuery] GetAllFeedbackQuery request)
     {
-        var result = await _sender.Send(new GetAllFeedbackQuery());
+        var result = await _sender.Send(request);
 
         return new ApiSuccessResult<PagedResultDto<FeedbackDto>>
         {
