@@ -32,8 +32,8 @@ public partial class TeacherMapper
         {
             Id = t.Id,
             Name = (t.Surname + " " + t.Name + " " + t.Patronymic).Trim(),
-            Grade = t.WorkloadsRefs.SelectMany(w => w.FeedbackRefs ?? new List<Feedback>())
-                .SelectMany(f => f.CriteriaFeedbackRefs ?? new List<CriteriaFeedback>())
+            Grade = t.WorkloadsRefs.SelectMany(w => w.FeedbackRefs!)
+                .SelectMany(f => f.CriteriaFeedbackRefs!)
                 .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Teacher)
                 .Average(cf => (float?)cf.CriteriaScore) ?? 0f
         });

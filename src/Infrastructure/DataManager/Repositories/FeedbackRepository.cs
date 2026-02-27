@@ -72,6 +72,9 @@ public class FeedbackRepository : IFeedbackRepository
     public async Task<PagedResultDto<FeedbackDto>> GetPagedFeedbacks(
         int page,
         int pageSize,
+        string? disciplineId,
+        string? teacherId,
+        string? workloadId,
         CancellationToken cancellationToken
     )
     {
@@ -86,6 +89,15 @@ public class FeedbackRepository : IFeedbackRepository
                 .ThenInclude(w => w.GroupRef)
             .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.TeacherRef));
+
+        if (!string.IsNullOrWhiteSpace(disciplineId))
+            baseQuery = baseQuery.Where(f => f.WorkloadRef!.DisciplineId == disciplineId);
+
+        if (!string.IsNullOrWhiteSpace(teacherId))
+            baseQuery = baseQuery.Where(f => f.WorkloadRef!.TeacherId == teacherId);
+
+        if (!string.IsNullOrWhiteSpace(workloadId))
+            baseQuery = baseQuery.Where(f => f.WorkloadId == workloadId);
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
 
@@ -217,5 +229,22 @@ public class FeedbackRepository : IFeedbackRepository
             return ["Comment not found"];
 
         return comments;
+    }
+
+    public async Task<List<FeedbackDto>> GetAllFeedbacksAsync(CancellationToken cancellationToken)
+    {
+        var baseQuery = _dbContext.Feedbacks
+            .Include(f => f.CriteriaFeedbackRefs!)
+                .ThenInclude(cf => cf.CriteriaRef)
+            .Include(f => f.WorkloadRef!)
+                .ThenInclude(w => w.DisciplineRef)
+            .Include(f => f.WorkloadRef!)
+                .ThenInclude(w => w.GroupRef)
+            .Include(f => f.WorkloadRef!)
+                .ThenInclude(w => w.TeacherRef);
+
+        return await _mapper.ProjectToDto(baseQuery)
+            .OrderBy(x => x.Id)
+            .ToListAsync(cancellationToken);
     }
 }

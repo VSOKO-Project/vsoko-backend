@@ -82,4 +82,43 @@ public class TeacherRepository : ITeacherRepository
             Patronymic = teacher.Patronymic
         };
     }
+
+    public async Task<PagedResultDto<TeacherDto>> GetAllAsync(
+        int page,
+        string query,
+        int pageSize,
+        CancellationToken cancellationToken
+    )
+    {
+        var baseQuery = _dbContext.Teachers.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var q = query.ToLower();
+            baseQuery = baseQuery.Where(t =>
+                t.Name.ToLower().Contains(q) ||
+                t.Surname.ToLower().Contains(q) ||
+                t.Patronymic.ToLower().Contains(q)
+            );
+        }
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        var items = await _mapper.ProjectToDto(baseQuery
+            .OrderBy(t => t.Surname)
+            .ThenBy(t => t.Name)
+            .ThenBy(t => t.Patronymic)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<TeacherDto>
+        {
+            Items = items,
+            TotalPages = (int)Math.Ceiling(totalCount / (decimal)pageSize),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        };
+    }
 }

@@ -13,15 +13,18 @@ public class ReportService : IReportService
     private readonly ITeacherRepository _teacherRepository;
     private readonly IDisciplineRepository _disciplineRepository;
     private readonly ICriteriaRepository _criteriaRepository;
+    private readonly IFeedbackRepository _feedbackRepository;
 
     public ReportService(
         ITeacherRepository teacherRepository, 
         IDisciplineRepository disciplineRepository,
-        ICriteriaRepository criteriaRepository)
+        ICriteriaRepository criteriaRepository,
+        IFeedbackRepository feedbackRepository)
     {
         _teacherRepository = teacherRepository;
         _disciplineRepository = disciplineRepository;
         _criteriaRepository = criteriaRepository;
+        _feedbackRepository = feedbackRepository;
     }
 
     public async Task<byte[]> GenerateReportAsync(CancellationToken cancellationToken)
@@ -29,6 +32,7 @@ public class ReportService : IReportService
         var disciplinesRating = await _disciplineRepository.GetAllRatingAsync(cancellationToken);
         var teacherRating = await _teacherRepository.GetAllRatingAsync(cancellationToken);
         var criteriaRating = await _criteriaRepository.GetAllRatingAsync(cancellationToken);
+        var feedbacks = await _feedbackRepository.GetAllFeedbacksAsync(cancellationToken);
 
         var avgTeacher = teacherRating.Where(x => x.Grade > 0).Select(x => x.Grade).DefaultIfEmpty(0).Average();
         var avgDiscipline = disciplinesRating.Where(x => x.Grade > 0).Select(x => x.Grade).DefaultIfEmpty(0).Average();
@@ -97,6 +101,12 @@ public class ReportService : IReportService
                         innerCol.Item().PaddingTop(15).Text("3. Средние оценки по критериям").Bold().FontSize(14);
                         innerCol.Item().Table(t => GenerateRatingTable(t, criteriaRating, "Название критерия", avgCriteria));
                     });
+
+                    col.Item().EnsureSpace(200).Column(innerCol =>
+                    {
+                        innerCol.Item().PaddingTop(15).Text("4. Отзывы студентов").Bold().FontSize(14);
+                        innerCol.Item().Table(t => GenerateFeedbackTable(t, feedbacks));
+                    });
                 });
                 page.Footer().Row(row =>
                 {
@@ -162,5 +172,53 @@ public class ReportService : IReportService
 
         table.Cell().ColumnSpan(2).PaddingVertical(10).PaddingHorizontal(5).AlignRight().Text("СРЕДНИЙ БАЛЛ:").SemiBold();
         table.Cell().Background(Colors.Blue.Lighten4).PaddingVertical(10).AlignCenter().Text(average.ToString("0.00")).SemiBold();
+    }
+
+    private void GenerateFeedbackTable(TableDescriptor table, IEnumerable<FeedbackDto> data)
+    {
+        table.ColumnsDefinition(columns =>
+        {
+            columns.ConstantColumn(40);
+            columns.RelativeColumn(2);
+            columns.RelativeColumn(2);
+            columns.ConstantColumn(70);
+            columns.RelativeColumn(3);
+        });
+
+        static IContainer HeaderStyle(IContainer container) => container
+            .BorderBottom(2).BorderColor(Colors.Black)
+            .PaddingVertical(8)
+            .AlignCenter();
+
+        static IContainer CellStyle(IContainer container) => container
+            .BorderBottom(1).BorderColor(Colors.Grey.Lighten3)
+            .PaddingVertical(6)
+            .PaddingHorizontal(4);
+
+        table.Header(header =>
+        {
+            header.Cell().Element(HeaderStyle).Text("№").SemiBold();
+            header.Cell().Element(HeaderStyle).AlignLeft().Text("Дисциплина").SemiBold();
+            header.Cell().Element(HeaderStyle).AlignLeft().Text("Преподаватель").SemiBold();
+            header.Cell().Element(HeaderStyle).Text("Оценка").SemiBold();
+            header.Cell().Element(HeaderStyle).AlignLeft().Text("Комментарий").SemiBold();
+        });
+
+        uint index = 1;
+        foreach (var item in data)
+        {
+            var backgroundColor = (index % 2 == 0) ? Colors.Grey.Lighten4 : Colors.White;
+            var avgGrade = item.CriteriaFeedback?.Count > 0
+                ? item.CriteriaFeedback.Average(cf => cf.CriteriaScore)
+                : 0;
+
+            table.Cell().Background(backgroundColor).Element(CellStyle).AlignCenter().Text(index.ToString());
+            table.Cell().Background(backgroundColor).Element(CellStyle).AlignLeft().Text(item.Workload?.Discipline?.Name ?? "-");
+            table.Cell().Background(backgroundColor).Element(CellStyle).AlignLeft().Text(item.Workload?.Teacher?.FullName ?? "-");
+            table.Cell().Background(backgroundColor).Element(CellStyle).AlignCenter().Text(avgGrade > 0 ? avgGrade.ToString("0.0") : "-");
+            table.Cell().Background(backgroundColor).Element(CellStyle).AlignLeft().Text(item.Comment ?? "-");
+
+            index++;
+        }
     }
 }

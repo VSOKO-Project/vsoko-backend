@@ -21,4 +21,11 @@ public interface ITeacherRepository : IRepository<Teacher>
         string id,
         CancellationToken cancellationToken
     );
+
+    public Task<PagedResultDto<TeacherDto>> GetAllAsync(
+        int page,
+        string query,
+        int pageSize,
+        CancellationToken cancellationToken
+    );
 }

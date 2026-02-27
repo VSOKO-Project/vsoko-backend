@@ -18,6 +18,9 @@ public interface IFeedbackRepository : IRepository<Feedback>
     public Task<PagedResultDto<FeedbackDto>> GetPagedFeedbacks(
         int page,
         int pageSize,
+        string? disciplineId,
+        string? teacherId,
+        string? workloadId,
         CancellationToken cancellationToken
     );
 
@@ -47,6 +50,10 @@ public interface IFeedbackRepository : IRepository<Feedback>
 
     public Task<List<string>> GetCommentByTeacherId(
         string id,
+        CancellationToken cancellationToken
+    );
+
+    public Task<List<FeedbackDto>> GetAllFeedbacksAsync(
         CancellationToken cancellationToken
     );
 }

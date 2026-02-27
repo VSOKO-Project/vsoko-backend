@@ -13,6 +13,9 @@ public class GetAllFeedbackQuery : IRequest<PagedResultDto<FeedbackDto>>, IQuery
 {
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 10;
+    public string? DisciplineId { get; init; }
+    public string? TeacherId { get; init; }
+    public string? WorkloadId { get; init; }
 }
 
 public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, PagedResultDto<FeedbackDto>>
@@ -41,7 +44,7 @@ public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, P
 
         return (await _cacheService.GetOrCreateAsync(
             key,
-            async (ct) => await _feedbackRepository.GetPagedFeedbacks(request.Page, request.PageSize, ct),
+            async (ct) => await _feedbackRepository.GetPagedFeedbacks(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, ct),
             [tag],
             cancellationToken))!;
     }

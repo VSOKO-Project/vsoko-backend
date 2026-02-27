@@ -82,4 +82,36 @@ public class DisciplineRepository : IDisciplineRepository
             Name = discipline.Name
         };
     }
+
+    public async Task<PagedResultDto<DisciplineDto>> GetAllAsync(
+        int page,
+        string query,
+        int pageSize,
+        CancellationToken cancellationToken
+    )
+    {
+        var baseQuery = _dbContext.Disciplines.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            baseQuery = baseQuery.Where(d => d.Name.ToLower().Contains(query.ToLower()));
+        }
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        var items = await _mapper.ProjectToDto(baseQuery
+            .OrderBy(d => d.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<DisciplineDto>
+        {
+            Items = items,
+            TotalPages = (int)Math.Ceiling(totalCount / (decimal)pageSize),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        };
+    }
 }
