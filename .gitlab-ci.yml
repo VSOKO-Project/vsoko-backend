@@ -4,7 +4,7 @@ stages:
 
 variables:
   DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-#wwww
+
 build_image:
   stage: build
   image: docker:27.5.0
@@ -19,7 +19,7 @@ build_image:
     - docker build --pull -t $DOCKER_IMAGE_NAME ./src/
     - docker push $DOCKER_IMAGE_NAME
   only:
-    - master
+    - main
     - stage
 
 .deploy_template:
