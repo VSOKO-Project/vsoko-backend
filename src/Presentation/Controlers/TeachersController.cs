@@ -16,6 +16,23 @@ public class TeachersController : BaseApiController
 {
     public TeachersController(ISender sender) : base(sender) { }
 
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(PagedResultDto<TeacherDto>), Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
+    public async Task<ApiSuccessResult<PagedResultDto<TeacherDto>>> GetAll([FromQuery] GetAllTeachersRequest request)
+    {
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<PagedResultDto<TeacherDto>>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
+    }
+
     [HttpGet("rating")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(PagedResultDto<RatingDto>), Status200OK)]

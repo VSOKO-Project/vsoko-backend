@@ -26,6 +26,6 @@ public class ReportController : BaseApiController
     {
         var doc = await _sender.Send(new ReportQuery(), cancellationToken);
 
-        return File(doc, "application/pdf", $"RatingCoo-{DateTime.Now:dd-MM-yyyy}.pdf");
+        return File(doc, "application/pdf", $"RatingVsoko-{DateTime.Now:dd-MM-yyyy}.pdf");
     }
 }

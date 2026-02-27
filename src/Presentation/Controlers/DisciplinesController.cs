@@ -16,6 +16,23 @@ public class DisciplinesController : BaseApiController
 {
     public DisciplinesController(ISender sender) : base(sender) { }
 
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(PagedResultDto<DisciplineDto>), Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
+    public async Task<ApiSuccessResult<PagedResultDto<DisciplineDto>>> GetAll([FromQuery] GetAllDisciplinesRequest request)
+    {
+        var result = await _sender.Send(request);
+
+        return new ApiSuccessResult<PagedResultDto<DisciplineDto>>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
+    }
+
     [HttpGet("rating")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(PagedResultDto<RatingDto>), Status200OK)]
