@@ -10,6 +10,9 @@ using Presentation.Common.Middlewares;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
 using QuestPDF.Infrastructure;
+using Serilog;
+using Serilog.Formatting.Compact;
+using Presentation.Common;
 
 QuestPDF.Settings.License = LicenseType.Community;
 
@@ -22,6 +25,33 @@ builder.Services.AddApplication();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddEndpointsApiExplorer();
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(new RenderedCompactJsonFormatter())
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+builder.Services.AddOptions<CorsOptions>()
+    .BindConfiguration(CorsOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+var corsOptions = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>();
+var origins = corsOptions?.GetOrigins() ?? new[] { "http://localhost:3000" };
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DefaultCorsPolicy", policy =>
+    {
+        policy.WithOrigins(origins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -52,6 +82,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.ApplyUserContext();
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 await app.Services.InitializeDatabaseAsync();
 

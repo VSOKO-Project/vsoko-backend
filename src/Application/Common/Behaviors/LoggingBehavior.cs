@@ -20,17 +20,24 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
         CancellationToken cancellationToken
     )
     {
-        var name = typeof(TRequest).Name;
+        var requestName = typeof(TRequest).Name;
+
+        _logger.LogInformation("Start executing {RequestName} at {DateTime}: {@Request}", 
+            requestName, DateTime.UtcNow, request);
 
         try
         {
-            _logger.Log(LogLevel.Information, $"Start executing {name}, at {DateTime.UtcNow}");
+            var response = await next();
+            
+            _logger.LogInformation("Finished executing {RequestName} at {DateTime}", 
+                requestName, DateTime.UtcNow);
 
-            return await next();
+            return response;
         }
-        catch
+        catch (Exception ex)
         {
-            _logger.Log(LogLevel.Error, $"Error executing {name}, at {DateTime.UtcNow}");
+            _logger.LogError(ex, "Error executing {RequestName} at {DateTime}. Data: {@Request}", 
+                requestName, DateTime.UtcNow, request);
 
             throw;
         }
