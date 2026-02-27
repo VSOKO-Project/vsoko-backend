@@ -39,9 +39,7 @@ services:
       - web_network
 
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE_NAME}
     env_file: 
       - .env
     ports:
