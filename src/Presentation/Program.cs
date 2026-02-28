@@ -87,6 +87,12 @@ app.UseSerilogRequestLogging();
 
 await app.Services.InitializeDatabaseAsync();
 
+app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseCors("DefaultCorsPolicy");
+
 app.UseGlobalExceptionHandler();
 
 app.UseAuthentication();

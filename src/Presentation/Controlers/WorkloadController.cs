@@ -19,7 +19,7 @@ public class WorkloadController : BaseApiController
 
     [HttpGet]
     [Authorize]
-    [ProducesResponseType(typeof(PagedResultDto<WorkloadDto>), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<PagedResultDto<WorkloadDto>>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
@@ -37,7 +37,7 @@ public class WorkloadController : BaseApiController
 
     [HttpGet("{id}")]
     [Authorize]
-    [ProducesResponseType(typeof(WorkloadDto), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<WorkloadDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]

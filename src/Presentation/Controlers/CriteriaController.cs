@@ -18,7 +18,7 @@ public class CriteriaController : BaseApiController
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
-    [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<CriteriaDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
@@ -37,7 +37,7 @@ public class CriteriaController : BaseApiController
 
     [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<CriteriaDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
@@ -61,7 +61,7 @@ public class CriteriaController : BaseApiController
 
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
-    [ProducesResponseType(typeof(Unit), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<Unit>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
@@ -80,7 +80,7 @@ public class CriteriaController : BaseApiController
 
     [HttpGet]
     [Authorize]
-    [ProducesResponseType(typeof(List<CriteriaDto>), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<List<CriteriaDto>>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<List<CriteriaDto>>> GetAll()
@@ -97,7 +97,7 @@ public class CriteriaController : BaseApiController
 
     [HttpGet("{id}")]
     [Authorize]
-    [ProducesResponseType(typeof(CriteriaDto), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<CriteriaDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)] 
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]

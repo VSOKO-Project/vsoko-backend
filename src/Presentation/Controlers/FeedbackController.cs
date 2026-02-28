@@ -19,7 +19,7 @@ public class FeedbackController : BaseApiController
 
     [HttpPost]
     [Authorize]
-    [ProducesResponseType(typeof(string), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<FeedbackDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
@@ -38,7 +38,7 @@ public class FeedbackController : BaseApiController
 
     [HttpGet]
     [Authorize]
-    [ProducesResponseType(typeof(List<FeedbackDto>), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<PagedResultDto<FeedbackDto>>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
@@ -56,7 +56,7 @@ public class FeedbackController : BaseApiController
 
     [HttpGet("{id}")]
     [Authorize]
-    [ProducesResponseType(typeof(FeedbackDto), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<FeedbackDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
@@ -75,7 +75,7 @@ public class FeedbackController : BaseApiController
 
     [HttpPut("{id}")]
     [Authorize]
-    [ProducesResponseType(typeof(FeedbackDto), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<FeedbackDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
@@ -99,7 +99,7 @@ public class FeedbackController : BaseApiController
 
     [HttpDelete("{id}")]
     [Authorize]
-    [ProducesResponseType(typeof(Unit), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<Unit>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]

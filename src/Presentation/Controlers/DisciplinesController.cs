@@ -18,7 +18,7 @@ public class DisciplinesController : BaseApiController
 
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    [ProducesResponseType(typeof(PagedResultDto<DisciplineDto>), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<PagedResultDto<DisciplineDto>>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
     public async Task<ApiSuccessResult<PagedResultDto<DisciplineDto>>> GetAll([FromQuery] GetAllDisciplinesRequest request)
@@ -35,7 +35,7 @@ public class DisciplinesController : BaseApiController
 
     [HttpGet("rating")]
     [Authorize(Roles = "Admin")]
-    [ProducesResponseType(typeof(PagedResultDto<RatingDto>), Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResult<PagedResultDto<RatingDto>>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
