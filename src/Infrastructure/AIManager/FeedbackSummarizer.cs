@@ -53,7 +53,7 @@ public class FeedbackSummarizer : IFeedbackSummarizer
         }
         catch (Exception ex)
         {
-            return ex.Message;
+            return ex.ToString();
         }
     }
 }
