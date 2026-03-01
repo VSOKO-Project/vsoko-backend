@@ -51,9 +51,9 @@ public class FeedbackSummarizer : IFeedbackSummarizer
 
             return result.ToString();
         }
-        catch
+        catch (Exception ex)
         {
-            return "AI-analys not available.";
+            return ex.Message;
         }
     }
 }

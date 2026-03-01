@@ -40,7 +40,7 @@ public class PostCriteriaCommandRequestHandler : IRequestHandler<PostCriteriaCom
         CancellationToken cancellationToken
     )
     {
-        var key = CacheKeys.Criteria.ListTag;
+        var tag = CacheKeys.Criteria.ListTag;
 
         var result = await _criteriaRepository.PostCriteria(
             request.Name,
@@ -48,7 +48,7 @@ public class PostCriteriaCommandRequestHandler : IRequestHandler<PostCriteriaCom
             cancellationToken
         );
 
-        await _cacheService.RemoveByTagAsync(key, cancellationToken);
+        await _cacheService.RemoveByTagAsync(tag, cancellationToken);
 
         return result;
     }

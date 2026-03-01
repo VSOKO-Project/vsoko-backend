@@ -38,11 +38,13 @@ public class DeleteCriteriaCommandRequestHandler
         CancellationToken cancellationToken
     )
     {
-        string key = CacheKeys.Criteria.GetById(request.Id!);
-
-        await _cacheService.RemoveAsync(key, cancellationToken);
+        var single_key = CacheKeys.Criteria.GetById(request.Id!);
+        var tag = CacheKeys.Criteria.ListTag;
 
         await _criteriaRepository.DeleteCriteria(request.Id!, cancellationToken);
+
+        await _cacheService.RemoveAsync(single_key, cancellationToken);
+        await _cacheService.RemoveByTagAsync(tag, cancellationToken);
         
         return Unit.Value;
     }

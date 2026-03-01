@@ -43,6 +43,7 @@ public class DeleteFeedbackRequestHandler : IRequestHandler<DeleteFeedbackReques
         await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(userId), cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Workload.ListTag, cancellationToken);
 
         await _feedbackRepository.DeleteFeedback(
             request.Id!,

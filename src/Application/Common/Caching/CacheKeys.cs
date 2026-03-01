@@ -30,8 +30,8 @@ public static class CacheKeys
         public static string ListTag(string studentId) => $"feedback-list:student:{studentId}";
         public static string GetByStudent(string userId) => $"feedback:student:{userId}";
         public static string GetById(string id, string studentId) => $"feedback:id:{id}:student:{studentId}";
-        public static string GetPaged(int page, int pageSize) => $"feedback:list:p{page}:s{pageSize}";
-        public static string GetPagedForStudent(int page, int pageSize, string studentId) => $"feedback:list:p{page}:s{pageSize}:student:{studentId}";
+        public static string GetPaged(int page, int pageSize, string? disciplineId = null, string? teacherId = null, string? workloadId = null) => $"feedback:list:p{page}:s{pageSize}:d{disciplineId}:t{teacherId}:w{workloadId}";
+        public static string GetPagedForStudent(int page, int pageSize, string studentId, string? disciplineId = null, string? teacherId = null, string? workloadId = null) => $"feedback:list:p{page}:s{pageSize}:student:{studentId}:d{disciplineId}:t{teacherId}:w{workloadId}";
     }
 
     public static class Teacher

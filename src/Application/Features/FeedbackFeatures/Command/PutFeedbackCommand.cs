@@ -42,16 +42,19 @@ public class PutFeedbackRequestHandler : IRequestHandler<PutFeedbackRequest, Fee
         var userId = _userContext.UserId ?? throw new UnauthorizedAccessException();
         var key = CacheKeys.Feedback.GetById(request.Id!, userId);
 
-        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(userId), cancellationToken);
-        await _cacheService.RemoveAsync(key);
-        await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
-        await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
-
-        return await _feedbackRepository.PutFeedback(
+        var result = await _feedbackRepository.PutFeedback(
             request.Id!,
             request.Comment,
             request.Feedback ?? new List<Grades>(),
             cancellationToken
         );
+
+        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(userId), cancellationToken);
+        await _cacheService.RemoveAsync(key);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Workload.ListTag, cancellationToken);
+
+        return result;
     }
 }

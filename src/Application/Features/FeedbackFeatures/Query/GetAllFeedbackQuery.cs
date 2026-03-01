@@ -37,8 +37,8 @@ public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, P
         var role = _userContext.Role;
 
         var key = role == "student" 
-        ? CacheKeys.Feedback.GetPagedForStudent(request.Page, request.PageSize, userId!)
-        : CacheKeys.Feedback.GetPaged(request.Page, request.PageSize);
+        ? CacheKeys.Feedback.GetPagedForStudent(request.Page, request.PageSize, userId!, request.DisciplineId, request.TeacherId, request.WorkloadId)
+        : CacheKeys.Feedback.GetPaged(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId);
 
         var tag = CacheKeys.Feedback.ListTag(userId);
 

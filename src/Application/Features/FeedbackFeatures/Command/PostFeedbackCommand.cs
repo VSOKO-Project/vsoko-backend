@@ -73,6 +73,7 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
         await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(_userContext.UserId ?? throw new UnauthorizationException("Invalid token")), cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Workload.ListTag, cancellationToken);
 
         return result;
     }
