@@ -51,6 +51,12 @@ public class FeedbackSummarizer : IFeedbackSummarizer
 
             return result.ToString();
         }
+        catch (HttpOperationException ex)
+        {
+            var googleErrorMessage = ex.ResponseContent; 
+            
+            return $"API Error: {ex.StatusCode}. Details: {googleErrorMessage}";
+        }
         catch (Exception ex)
         {
             return ex.ToString();
