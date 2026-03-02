@@ -218,7 +218,7 @@ public static class DataSeeder
             foreach (var student in groupStudents)
             {
                 // ~70% студентов оставляют отзыв
-                if (rng.NextDouble() > 0.7)
+                if (rng.NextDouble() > 0.2)
                     continue;
 
                 var feedback = new Feedback
