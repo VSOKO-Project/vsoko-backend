@@ -173,7 +173,7 @@ public class FeedbackRepository : IFeedbackRepository
                 }
             catch (Exception ex)
             {
-                throw new ValidationException(ex.Message)
+                throw new ValidationException(ex.Message);
             }
         }
 
