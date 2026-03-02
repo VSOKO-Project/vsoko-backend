@@ -158,17 +158,23 @@ public class FeedbackRepository : IFeedbackRepository
             feedback.Comment = comment;
 
         if (grades is not null)
-        {
-            _dbContext.RemoveRange(feedback.CriteriaFeedbackRefs!);
+        {   try
+                {
+                _dbContext.RemoveRange(feedback.CriteriaFeedbackRefs!);
 
-            var newGrades = grades.Select(w => new CriteriaFeedback
+                var newGrades = grades.Select(w => new CriteriaFeedback
+                {
+                    CriteriaId = w.CriteriaId ?? throw new ValidationException("Invalid Criteria Id"),
+                    CriteriaScore = w.Grade,
+                    FeedbackId = feedback.Id,
+                }).ToList();
+
+                await _dbContext.AddRangeAsync(newGrades, cancellationToken);
+                }
+            catch (Exception ex)
             {
-                CriteriaId = w.CriteriaId ?? throw new ValidationException("Invalid Criteria Id"),
-                CriteriaScore = w.Grade,
-                FeedbackId = feedback.Id,
-            }).ToList();
-
-            await _dbContext.AddRangeAsync(newGrades, cancellationToken);
+                throw new ValidationException(ex.Message)
+            }
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
