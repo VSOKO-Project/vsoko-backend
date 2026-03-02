@@ -179,6 +179,12 @@ public class FeedbackRepository : IFeedbackRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        await _dbContext.Entry(feedback)
+        .Collection(f => f.CriteriaFeedbackRefs)
+        .Query()
+        .Include(cfr => cfr.CriteriaRef)
+        .LoadAsync(cancellationToken);
+
         return _mapper.MapSingle(feedback);
     }
 
