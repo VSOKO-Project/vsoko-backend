@@ -10,7 +10,11 @@ public static class DI
     public static IServiceCollection ApplySecurityManager(this IServiceCollection services)
     {
         services
-            .AddIdentity<ApplicationUser, IdentityRole>()
+            .AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                options.Password.RequireLowercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+            })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddRoles<IdentityRole>();
 
