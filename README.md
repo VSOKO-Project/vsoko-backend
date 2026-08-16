@@ -1,9 +1,27 @@
 # VSOKO / Backend
 
-> Part of the **VSOKO** education quality assessment system.
-> 📖 [Full project description and architecture →](https://github.com/VSOKO-Project)
-
 REST API for the VSOKO platform. Handles authentication, feedback collection from students, teacher and discipline rating aggregation, report generation, and AI-powered summaries.
+
+This repo is one of three that make up the system:
+
+| Repository | Stack | Role |
+| --- | --- | --- |
+| **vsoko-backend** (this repo) | C# / ASP.NET Core, MediatR (CQRS), EF Core, PostgreSQL, Redis | REST API: auth, feedback collection, rating aggregation, report generation, AI summaries |
+| [**vsoko-frontend**](https://github.com/VSOKO-Project/vsoko-frontend) | React 19, TypeScript, Vite, TanStack Query, Recharts | Web UI for students (feedback) and admins (criteria, ratings, reports) |
+| [**vsoko-infra**](https://github.com/VSOKO-Project/vsoko-infra) | Traefik, Docker Compose | Reverse proxy (TLS via Let's Encrypt) |
+
+## Architecture
+
+![Architecture](docs/assets/architecture.png)
+
+Monolith built on **Clean Architecture** with 4 layers:
+
+| Layer | Contents |
+|---|---|
+| **Domain** | Entities, repository interfaces, specifications |
+| **Application** | CQRS commands and queries via MediatR, DTOs, validation |
+| **Infrastructure** | EF Core + PostgreSQL, Redis cache, JWT, Identity, PDF, AI |
+| **Presentation** | ASP.NET Core controllers, middleware, Swagger |
 
 ## Stack
 
@@ -17,6 +35,29 @@ REST API for the VSOKO platform. Handles authentication, feedback collection fro
 - **QuestPDF** — report generation
 - **Semantic Kernel + Google AI** — AI-generated summaries for teachers and disciplines
 - **Serilog** — structured JSON logging
+
+## Database Schema
+
+![ERD](docs/assets/erd.png)
+
+| Table | Purpose |
+|---|---|
+| `ApplicationUser` | System users (Identity): employees and students |
+| `Employee` / `EmployeeRole` | Employees with roles (RBAC) |
+| `Student` / `StudentGroup` | Students and academic groups |
+| `Teacher` | Teachers |
+| `Discipline` | Academic disciplines |
+| `Workload` | Junction of teacher, discipline, and group |
+| `Feedback` | Student review for a specific workload |
+| `Criteria` / `CriteriaFeedback` | Evaluation criteria and per-criteria scores |
+| `Refresh` | Refresh tokens for JWT authentication |
+
+## Auth & RBAC
+
+Authentication via JWT + Refresh tokens. Authorization is implemented as a custom RBAC model:
+- roles and permissions are stored in the database (`EmployeeRole`)
+- access checks are enforced at the Application layer (MediatR pipeline), not just via controller attributes
+- security-related business logic is isolated from the Presentation layer
 
 ## MediatR Pipeline
 
