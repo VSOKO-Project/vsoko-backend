@@ -1,11 +1,12 @@
 using Application.Common.Interfaces;
+using Application.Common.ResultsDto;
 using Application.Interfaces.SecurityManager;
 using FluentValidation;
 using MediatR;
 
 namespace Application.Features.SecurityFeatures.Command;
 
-public class ChangePasswordCommand : IRequest<Unit>
+public class ChangePasswordCommand : IRequest<LoginResultDto>
 {
     public string? CurrentPassword { get; init; }
     public string? NewPassword { get; init; }
@@ -20,7 +21,7 @@ public class ChangePasswordCommandValidator : AbstractValidator<ChangePasswordCo
     }
 }
 
-public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordCommand, Unit>
+public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordCommand, LoginResultDto>
 {
     private readonly ISecurityService _securityManager;
     private readonly IUserContext _userContext;
@@ -31,18 +32,17 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         _userContext = userContext;
     }
 
-    public async Task<Unit> Handle(
+    public async Task<LoginResultDto> Handle(
         ChangePasswordCommand request,
         CancellationToken cancellationToken
     )
     {
-        await _securityManager.ChangePasswordAsync(
+        return await _securityManager.ChangePasswordAsync(
             _userContext.UserId!,
             request.CurrentPassword ?? "",
             request.NewPassword ?? "",
             cancellationToken
         );
 
-        return Unit.Value;
     }
 }

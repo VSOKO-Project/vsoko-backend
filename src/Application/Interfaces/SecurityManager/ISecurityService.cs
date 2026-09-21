@@ -14,7 +14,7 @@ public interface ISecurityService
 
     public Task LogOut(string refresh, CancellationToken cancellationToken);
 
-    public Task ChangePasswordAsync(
+    public Task<LoginResultDto> ChangePasswordAsync(
         string userId,
         string currentPassword,
         string newPassword,

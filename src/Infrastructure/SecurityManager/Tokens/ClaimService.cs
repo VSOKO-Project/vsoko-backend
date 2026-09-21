@@ -49,7 +49,8 @@ public class ClaimService
         CancellationToken cancellationToken
     )
     {
-        var student = await _dbContext.Students.FindAsync(user.Id, cancellationToken);
+        var student = await _dbContext.Students.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == user.Id && s.GroupRef != null && !s.GroupRef.IsDeleted, cancellationToken);
 
         if (student is null)
             throw new DomainException($"Student {user.Id}", new[] { "null or not set" });
@@ -73,10 +74,11 @@ public class ClaimService
         if (employee is null)
             throw new DomainException($"Employee {user.Id}", new[] { "null or not set" });
 
-        return new List<Claim>
-        {
-            new Claim(ClaimTypes.Role, employee.RoleRef!.Name),
-            new Claim(ClaimTypes.Role, "admin"),
-        };
+        // Identity membership is the single source of administrative permissions.
+        var isAdmin = await (from membership in _dbContext.UserRoles
+                             join role in _dbContext.Roles on membership.RoleId equals role.Id
+                             where membership.UserId == user.Id && role.Name == "Admin"
+                             select membership).AnyAsync(cancellationToken);
+        return new List<Claim> { new(ClaimTypes.Role, isAdmin ? "Admin" : "employee") };
     }
 }

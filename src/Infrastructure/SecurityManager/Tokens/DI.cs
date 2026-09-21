@@ -29,6 +29,7 @@ public static class DI
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
+                options.EventsType = typeof(SessionValidationEvents);
 
                 var tokenSettings = configuration.GetSection(TokenSettings.SectionName).Get<TokenSettings>();
 
@@ -45,10 +46,11 @@ public static class DI
                             tokenSettings?.SecretKey ?? throw new DomainException()
                         )
                     ),
-                    ClockSkew = TimeSpan.FromMinutes(tokenSettings?.ExpireInMinute ?? 60),
+                    ClockSkew = TimeSpan.FromSeconds(30),
                 };
             });
 
+        services.AddScoped<SessionValidationEvents>();
         services.AddTransient<TokenService>();
 
         services.AddTransient<ClaimService>();

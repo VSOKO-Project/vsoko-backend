@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Application.Common.Interfaces;
+using Application.Common.Exceptions;
 
 namespace Presentation.Services;
 
@@ -21,13 +22,13 @@ public class UserContext : IUserContext
             if (roles is null || roles.Count == 0)
                 return null;
 
-            if (roles.Contains("admin"))
+            if (roles.Contains("Admin"))
                 return "admin";
 
             if (roles.Contains("student"))
                 return "student";
 
-            return null;
+            throw new UnauthorizationException("This account has no access to student or administrator resources");
         }
     }
     public string? StudentGroup => User?.FindFirst("group")?.Value ?? null;

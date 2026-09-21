@@ -29,7 +29,7 @@ public class GetWorkloadByIdQueryHandler : IRequestHandler<GetWorkloadByIdQuery,
         var groupId = _userContext.StudentGroup ?? "";
 
         var key = role == "student"
-            ? CacheKeys.Workload.GetByIdForStudent(request.Id, groupId)
+            ? CacheKeys.Workload.GetByIdForStudent(request.Id, groupId, _userContext.UserId!)
             : CacheKeys.Workload.GetById(request.Id);
 
         return (await _cacheService.GetOrCreateAsync(

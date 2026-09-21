@@ -9,156 +9,95 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.SecurityManager.AspNetCoreIdentity;
 
-public class SecurityService : ISecurityService
+public class SecurityService
+    (UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
+     TokenService tokenService, AppDbContext context) : ISecurityService
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly TokenService _tokenService;
-    private readonly AppDbContext _context;
-
-    public SecurityService(
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
-        TokenService tokenService,
-        AppDbContext context
-    )
+    public async Task<LoginResultDto> LoginAsync(string login, string password, CancellationToken cancellationToken)
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _tokenService = tokenService;
-        _context = context;
+        var user = await userManager.FindByNameAsync(login);
+        EnsureActive(user);
+        // JWT login does not need to issue an additional Identity cookie.
+        var result = await signInManager.CheckPasswordSignInAsync(user!, password, lockoutOnFailure: true);
+        if (!result.Succeeded) throw new UnauthorizationException("Invalid login credentials");
+        return await CreateSession(user!, cancellationToken);
     }
 
-    public async Task<LoginResultDto> LoginAsync(
-        string login,
-        string password,
-        CancellationToken cancellationToken
-    )
+    public async Task<LoginResultDto> RefreshToken(string refresh, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByNameAsync(login);
+        var session = await context.Refreshes.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Token == refresh && s.ExpiresAt > DateTime.UtcNow, cancellationToken);
+        if (session is null) throw new UnauthorizationException("Invalid Refresh");
+        var user = await userManager.FindByIdAsync(session.UserId);
+        EnsureActive(user);
+        if (session.SecurityStamp is null || session.SecurityStamp != user!.SecurityStamp)
+            throw new UnauthorizationException("Session revoked");
 
-        if (user is null)
-            throw new UnauthorizationException("Bad creds");
+        var (newRefresh, expires) = tokenService.GenerateRefreshToken();
+        // Compare-and-swap consumes this token exactly once, even across tabs/servers.
+        // The session ID stays stable so concurrent requests using its JWT remain valid.
+        var consumed = await context.Refreshes
+            .Where(s => s.Id == session.Id && s.Token == refresh && s.ExpiresAt > DateTime.UtcNow)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.Token, newRefresh)
+                .SetProperty(s => s.ExpiresAt, expires), cancellationToken);
+        if (consumed != 1) throw new UnauthorizationException("Refresh already consumed or revoked");
+        session.Token = newRefresh;
+        return await SessionResult(user!, session, cancellationToken);
+    }
 
-        if (user.IsDeleted == true)
-            throw new UnauthorizationException("Deleted!");
+    public async Task LogOut(string refresh, CancellationToken cancellationToken)
+    {
+        // Idempotent; revoking the session also invalidates its access tokens.
+        await context.Refreshes.Where(s => s.Token == refresh)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(s => s.IsDeleted, true), cancellationToken);
+    }
 
-        if (user.IsBlocked == true)
-            throw new UnauthorizationException("Blocked!");
-
-        var result = await _signInManager.PasswordSignInAsync(user, password, true, false);
-
-        if (result.IsLockedOut)
-            throw new UnauthorizationException("Invalid login cerdinals. IsLockedOut.");
-
+    public async Task<LoginResultDto> ChangePasswordAsync(
+        string userId, string currentPassword, string newPassword, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        EnsureActive(user);
+        var result = await userManager.ChangePasswordAsync(user!, currentPassword, newPassword);
         if (!result.Succeeded)
-            throw new UnauthorizationException("Invalid login cerdinals. Not Succeeded.");
-
-        var (token, expires) = await _tokenService.GenerateJwtToken(user, cancellationToken);
-        var (refreshToken, refreshExpires) = _tokenService.GenerateRefreshToken();
-
-        await _context.AddAsync(
-            new Refresh
-            {
-                UserId = user.Id,
-                Token = refreshToken,
-                ExpiresAt = refreshExpires,
-            }
-        );
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return new LoginResultDto
-        {
-            AccessToken = token,
-            RefreshToken = refreshToken,
-            Expires = expires,
-            UserId = user.Id,
-            IsAdmin = await _userManager.IsInRoleAsync(user, "Admin"),
-            MustChangePassword = user.MustChangePassword,
-        };
-    }
-
-    public async Task<LoginResultDto> RefreshToken(
-        string refresh,
-        CancellationToken cancellationToken
-    )
-    {
-        var oldRefesh = await _context.Refreshes.FirstOrDefaultAsync(w => w.Token.Equals(refresh) && w.ExpiresAt > DateTime.UtcNow, cancellationToken);
-
-        if (oldRefesh is null)
-            throw new UnauthorizationException("Invalid Refresh");
-
-        oldRefesh.IsDeleted = true;
-
-        var user = await _userManager.FindByIdAsync(oldRefesh.UserId);
-
-        if (user is null)
-            throw new UnauthorizationException("Bad creds");
-
-        if (user.IsDeleted == true)
-            throw new UnauthorizationException("Deleted!");
-
-        if (user.IsBlocked == true)
-            throw new UnauthorizationException("Blocked!");
-
-        var (token, expires) = await _tokenService.GenerateJwtToken(user, cancellationToken);
-        var (refreshToken, refreshExpires) = _tokenService.GenerateRefreshToken();
-
-        await _context.AddAsync(
-            new Refresh
-            {
-                UserId = user.Id,
-                Token = refreshToken,
-                ExpiresAt = refreshExpires,
-            }
-        );
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return new LoginResultDto
-        {
-            AccessToken = token,
-            RefreshToken = refreshToken,
-            Expires = expires,
-            UserId = user.Id,
-            IsAdmin = await _userManager.IsInRoleAsync(user, "Admin"),
-            MustChangePassword = user.MustChangePassword,
-        };
-    }
-
-    public async Task LogOut(string refreshToken, CancellationToken cancellationToken)
-    {
-        var oldRefesh = await _context.Refreshes.FirstOrDefaultAsync(w => w.Token.Equals(refreshToken));
-
-        if (oldRefesh is null)
-            throw new UnauthorizationException("Invalid Refresh");
-
-        oldRefesh.IsDeleted = true;
-
-        await _context.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task ChangePasswordAsync(
-        string userId,
-        string currentPassword,
-        string newPassword,
-        CancellationToken cancellationToken
-    )
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-
-        if (user is null)
-            throw new UnauthorizationException("Bad creds");
-
-        var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
-
+            throw new ValidationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+        user!.MustChangePassword = false;
+        result = await userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            throw new UnauthorizationException(
-                string.Join("; ", result.Errors.Select(e => e.Description))
-            );
+            throw new InvalidOperationException("Could not save password change state");
 
-        user.MustChangePassword = false;
-        await _userManager.UpdateAsync(user);
+        await context.Refreshes.Where(s => s.UserId == userId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(s => s.IsDeleted, true), cancellationToken);
+        // Return the replacement session in the same transaction as password change.
+        return await CreateSession(user, cancellationToken);
+    }
+
+    private static void EnsureActive(ApplicationUser? user)
+    {
+        if (user is null || user.IsDeleted == true || user.IsBlocked == true)
+            throw new UnauthorizationException("Account unavailable");
+    }
+
+    private async Task<LoginResultDto> CreateSession(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        var (refresh, expires) = tokenService.GenerateRefreshToken();
+        var session = new Refresh {
+            UserId = user.Id, Token = refresh, ExpiresAt = expires, SecurityStamp = user.SecurityStamp
+        };
+        // Generate claims before persisting a session for an invalid profile.
+        var result = await SessionResult(user, session, cancellationToken);
+        context.Refreshes.Add(session);
+        await context.SaveChangesAsync(cancellationToken);
+        return result;
+    }
+
+    private async Task<LoginResultDto> SessionResult(ApplicationUser user, Refresh session, CancellationToken cancellationToken)
+    {
+        var (token, expires) = await tokenService.GenerateJwtToken(user, session.Id, cancellationToken);
+        return new LoginResultDto {
+            AccessToken = token, RefreshToken = session.Token, Expires = expires, UserId = user.Id,
+            IsAdmin = user.Type == Domain.Enums.UserType.Employee && await userManager.IsInRoleAsync(user, "Admin"),
+            MustChangePassword = user.MustChangePassword
+        };
     }
 }

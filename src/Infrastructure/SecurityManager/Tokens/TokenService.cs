@@ -20,10 +20,13 @@ public class TokenService
 
     public async Task<(string, DateTime)> GenerateJwtToken(
         ApplicationUser user,
+        string sessionId,
         CancellationToken cancellationToken
     )
     {
         var claims = await _claimService.GetClaimsForUserAsync(user, cancellationToken);
+
+        claims.Add(new System.Security.Claims.Claim("sid", sessionId));
 
         var key = GetSymmetricSecurityKey();
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

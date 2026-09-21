@@ -80,20 +80,21 @@ public class SecurityController : BaseApiController
     [Authorize]
     [AllowWithPendingPasswordChange]
     [HttpPost("ChangePassword")]
-    [ProducesResponseType(typeof(ApiSuccessResult<Unit>), Status204NoContent)]
+    [ProducesResponseType(typeof(ApiSuccessResult<LoginResultDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<ApiSuccessResult<Unit>> ChangePassword(
+    public async Task<ApiSuccessResult<LoginResultDto>> ChangePassword(
         ChangePasswordCommand command,
         CancellationToken cancellationToken
     )
     {
-        await _sender.Send(command, cancellationToken);
+        var result = await _sender.Send(command, cancellationToken);
 
-        return new ApiSuccessResult<Unit>
+        return new ApiSuccessResult<LoginResultDto>
         {
-            Code = Status204NoContent,
+            Code = Status200OK,
+            Data = result,
             Message = "Success"
         };
     }
