@@ -12,6 +12,7 @@ public class ApplicationUser : IdentityUser
     public required UserType Type { get; set; }
     public bool? IsBlocked { get; set; }
     public bool? IsDeleted { get; set; }
+    public bool MustChangePassword { get; set; }
     public DateTime? CreatedAt { get; set; }
     public string? CreatedById { get; set; }
     public DateTime? UpdatedAt { get; set; }

@@ -75,6 +75,7 @@ public class SecurityService : ISecurityService
             Expires = expires,
             UserId = user.Id,
             IsAdmin = await _userManager.IsInRoleAsync(user, "Admin"),
+            MustChangePassword = user.MustChangePassword,
         };
     }
 
@@ -122,6 +123,7 @@ public class SecurityService : ISecurityService
             Expires = expires,
             UserId = user.Id,
             IsAdmin = await _userManager.IsInRoleAsync(user, "Admin"),
+            MustChangePassword = user.MustChangePassword,
         };
     }
 
@@ -135,5 +137,28 @@ public class SecurityService : ISecurityService
         oldRefesh.IsDeleted = true;
 
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ChangePasswordAsync(
+        string userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken
+    )
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+            throw new UnauthorizationException("Bad creds");
+
+        var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+
+        if (!result.Succeeded)
+            throw new UnauthorizationException(
+                string.Join("; ", result.Errors.Select(e => e.Description))
+            );
+
+        user.MustChangePassword = false;
+        await _userManager.UpdateAsync(user);
     }
 }

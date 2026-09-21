@@ -74,7 +74,10 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddControllers().AddJsonOptions(options =>
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<Presentation.Common.Filters.MustChangePasswordFilter>();
+}).AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });

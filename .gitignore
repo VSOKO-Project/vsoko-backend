@@ -7,6 +7,9 @@
 .env
 .agent/
 
+# Student roster data (PII) used by src/Tools/ImportStudents — never commit
+src/Tools/ImportStudents/*.csv
+
 # User-specific files
 *.rsuser
 *.suo

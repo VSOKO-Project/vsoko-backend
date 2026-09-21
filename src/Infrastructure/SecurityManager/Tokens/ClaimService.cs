@@ -11,6 +11,8 @@ namespace Infrastructure.SecurityManager.Tokens;
 
 public class ClaimService
 {
+    public const string MustChangePasswordClaimType = "must_change_password";
+
     private readonly AppDbContext _dbContext;
 
     public ClaimService(AppDbContext dbContext)
@@ -27,6 +29,7 @@ public class ClaimService
         {
             new Claim(ClaimTypes.Name, user.UserName!),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(MustChangePasswordClaimType, user.MustChangePassword ? "true" : "false"),
         };
 
         var additionalClaims = user.Type switch

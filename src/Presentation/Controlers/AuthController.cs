@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Common.Base;
 using Presentation.Common.DTOs;
+using Presentation.Common.Filters;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 
 namespace Presentation.Controllers;
@@ -74,5 +75,26 @@ public class SecurityController : BaseApiController
             Code = Status204NoContent,
             Message = "Success"
         };
-    }   
+    }
+
+    [Authorize]
+    [AllowWithPendingPasswordChange]
+    [HttpPost("ChangePassword")]
+    [ProducesResponseType(typeof(ApiSuccessResult<Unit>), Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
+    public async Task<ApiSuccessResult<Unit>> ChangePassword(
+        ChangePasswordCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        await _sender.Send(command, cancellationToken);
+
+        return new ApiSuccessResult<Unit>
+        {
+            Code = Status204NoContent,
+            Message = "Success"
+        };
+    }
 }
