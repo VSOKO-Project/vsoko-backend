@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Infrastructure.DataManager.Contexts;
 using Microsoft.AspNetCore.Identity;
@@ -15,18 +16,22 @@ public static class DatabaseInitializer
     {
         using var scope = serviceProvider.CreateScope();
         var services = scope.ServiceProvider;
-        
+
         try
         {
             var context = services.GetRequiredService<AppDbContext>();
             var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+            var environment = services.GetRequiredService<IHostEnvironment>();
             if (context.Database.IsRelational())
             {
                 await context.Database.MigrateAsync();
             }
 
-            await DataSeeder.SeedAsync(context, userManager, roleManager);
+            if (!environment.IsProduction())
+            {
+                await DataSeeder.SeedAsync(context, userManager, roleManager);
+            }
         }
         catch (Exception ex)
         {
