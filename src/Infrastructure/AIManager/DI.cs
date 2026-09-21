@@ -13,22 +13,23 @@ public static class Discipline
         var AiSettings = new AiSettings();
         configuration.GetSection(AiSettings.SectionName).Bind(AiSettings);
 
-        var webProxy = new WebProxy("http://5.180.97.175:3128");
+        if (string.IsNullOrWhiteSpace(AiSettings.ApiKey))
+            throw new InvalidOperationException("AI Api key is missing.");
 
-        var handler = new HttpClientHandler
+        var handler = new HttpClientHandler();
+
+        if (!string.IsNullOrWhiteSpace(AiSettings.ProxyUrl))
         {
-            Proxy = webProxy,
-            UseProxy = true
-        };
+            handler.Proxy = new WebProxy(AiSettings.ProxyUrl);
+            handler.UseProxy = true;
+        }
 
         var proxyHttpClient = new HttpClient(handler);
         var builder = Kernel.CreateBuilder();
 
-        if (string.IsNullOrWhiteSpace(AiSettings.ApiKey))
-            throw new InvalidOperationException("AI Api key is missing.");
-
-        builder.AddGoogleAIGeminiChatCompletion(
-            modelId: "gemini-2.5-flash",
+        builder.AddOpenAIChatCompletion(
+            modelId: AiSettings.Model,
+            endpoint: new Uri(AiSettings.Endpoint),
             apiKey: AiSettings.ApiKey,
             httpClient: proxyHttpClient
         );
