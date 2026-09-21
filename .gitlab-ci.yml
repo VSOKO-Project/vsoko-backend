@@ -16,7 +16,7 @@ build_image:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker builder prune -f --filter unused-for=24h
+    - docker builder prune -af
     - docker build --pull -t $DOCKER_IMAGE_NAME .
     - docker push $DOCKER_IMAGE_NAME
   only:
