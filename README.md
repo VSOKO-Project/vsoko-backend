@@ -1,31 +1,15 @@
-<div align="center">
+# VSOKO API
 
-<a href="https://gitlab.com/vsoko"><img src="https://gitlab.com/uploads/-/system/group/avatar/124661769/logo.png" width="72" alt="VSOKO"></a>
+REST API: sign-in, feedback, teacher and course ratings, PDF reports, AI summaries.
 
-# ⚙️ vsoko-api
+Stack: C#, ASP.NET Core, PostgreSQL 16, Redis, MediatR, QuestPDF, Semantic Kernel.
 
-### REST API: authentication, feedback collection, teacher and discipline ratings, PDF reports, AI summaries
+## What it does
 
-[![pipeline](https://gitlab.com/vsoko/vsoko-api/badges/main/pipeline.svg)](https://gitlab.com/vsoko/vsoko-api/-/pipelines)
-![C#](https://img.shields.io/badge/C%23_·_ASP.NET_Core-512BD4?logo=dotnet&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?logo=postgresql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
-![MediatR](https://img.shields.io/badge/MediatR-CQRS-6366f1)
-![QuestPDF](https://img.shields.io/badge/QuestPDF-reports-0ea5e9)
-![Semantic Kernel](https://img.shields.io/badge/Semantic_Kernel-AI_summaries-16a34a)
-
-<sub>Part of <a href="https://gitlab.com/vsoko"><b>VSOKO</b></a> — an education quality assessment platform running in production at a university</sub>
-
-</div>
-
----
-
-## Role in the system
-
-The single backend of VSOKO. Students sign in and rate each of their workloads
-(*teacher × discipline × group*) against admin-defined criteria. Administrators manage the criteria,
-read teacher and discipline ratings, export a PDF report and request LLM-generated summaries of the
-written feedback. Read-heavy endpoints are served through a two-level cache.
+The only backend in VSOKO. Students sign in and rate each of their workloads
+(*teacher × course × group*) against criteria set by an admin. Admins manage the
+criteria, see teacher and course ratings, export a PDF report, and ask an LLM to
+summarize the written feedback.
 
 ```mermaid
 flowchart LR
@@ -37,53 +21,53 @@ flowchart LR
 
 ## Features
 
-- **Feedback collection** — students submit, edit and delete feedback per workload, scored on every criterion.
-- **Ratings** — paged teacher and discipline ratings aggregated from criteria scores.
-- **PDF report** — an analytical report with summary indexes and teacher and discipline rankings, generated with QuestPDF.
-- **AI summaries** — Semantic Kernel condenses the written feedback on a teacher or discipline; works with any OpenAI-compatible endpoint, optional HTTP proxy.
-- **Two-level cache** — `HybridCache` (L1 in-memory, L2 Redis) with tag-based invalidation; k6 at 200 VU: p95 **33 → 13 ms**, average **13 → 5 ms**.
-- **Roster import** — idempotent CLI tools that import students and workloads from CSV.
+- **Feedback** — students submit, edit, and delete feedback on a workload, with a score for every criterion.
+- **Ratings** — paged teacher and course ratings built from the criteria scores.
+- **PDF report** — summary indexes plus teacher and course rankings, generated with QuestPDF.
+- **AI summaries** — Semantic Kernel condenses written feedback on a teacher or course. Works with any OpenAI-compatible endpoint, with an optional HTTP proxy.
+- **Two-level cache** — `HybridCache` (in-memory + Redis) with tag-based invalidation. Under k6 at 200 users, p95 dropped from 33 to 13 ms and the average from 13 to 5 ms.
+- **Roster import** — CLI tools that import students and workloads from CSV; safe to re-run.
 
 ## Architecture
 
 ![Architecture](docs/assets/architecture.png)
 
-Monolith on **Clean Architecture**:
+A monolith built on **Clean Architecture**:
 
 | Layer | Contents |
 | --- | --- |
 | **Domain** | entities, enums |
-| **Application** | CQRS commands and queries (MediatR), DTOs, validators, pipeline behaviors |
+| **Application** | MediatR commands and queries, DTOs, validators, pipeline behaviors |
 | **Infrastructure** | EF Core + PostgreSQL, Identity + JWT, HybridCache + Redis, QuestPDF, Semantic Kernel |
 | **Presentation** | controllers, filters, Swagger, health checks, Serilog |
 
 ### MediatR pipeline
 
-Every command and query passes through three behaviors:
+Every command and query goes through three behaviors:
 
 ```text
 Request → LoggingBehavior → ValidationBehavior (FluentValidation) → TransactionBehavior → Handler
 ```
 
-### Auth & RBAC
+### Auth and roles
 
 - JWT access tokens plus refresh tokens stored in the `Refresh` table; logout revokes them.
-- ASP.NET Core Identity users with roles; admin-only endpoints are guarded by `[Authorize(Roles = "Admin")]`.
-- Imported accounts get a temporary password and `MustChangePassword = true`. A global filter blocks every endpoint except password change until it is reset.
+- ASP.NET Core Identity users with roles; admin endpoints use `[Authorize(Roles = "Admin")]`.
+- Imported accounts get a temporary password. Until it is changed, a global filter blocks every endpoint except password change.
 
 ## Endpoints
 
-Swagger UI: `/swagger` (Development). Health checks: `GET /health/live`, `GET /health/ready`.
+Swagger UI is at `/swagger` in Development. Health checks: `GET /health/live`, `GET /health/ready`.
 
 | Area | Endpoints | Access |
 | --- | --- | --- |
-| Security | `POST /api/security/Login` · `Refresh` · `LogOut` · `ChangePassword` | public / authorized |
-| Workloads | `GET /api/workload` · `GET /api/workload/{id}` | authorized |
-| Feedback | `POST` / `GET /api/feedback` · `GET` / `PUT` / `DELETE /api/feedback/{id}` | authorized |
-| Criteria | `GET /api/criteria` · `GET /api/criteria/{id}` | authorized |
+| Security | `POST /api/security/Login` · `Refresh` · `LogOut` · `ChangePassword` | public / signed in |
+| Workloads | `GET /api/workload` · `GET /api/workload/{id}` | signed in |
+| Feedback | `POST` / `GET /api/feedback` · `GET` / `PUT` / `DELETE /api/feedback/{id}` | signed in |
+| Criteria | `GET /api/criteria` · `GET /api/criteria/{id}` | signed in |
 | Criteria | `POST /api/criteria` · `PUT` / `DELETE /api/criteria/{id}` | Admin |
 | Teachers | `GET /api/teachers` · `GET /api/teachers/rating` | Admin |
-| Disciplines | `GET /api/disciplines` · `GET /api/disciplines/rating` | Admin |
+| Courses | `GET /api/disciplines` · `GET /api/disciplines/rating` | Admin |
 | Summaries | `GET /api/summaries/teacher/{id}` · `GET /api/summaries/discipline/{id}` | Admin |
 | Report | `POST /api/report` → PDF | Admin |
 
@@ -91,41 +75,40 @@ Swagger UI: `/swagger` (Development). Health checks: `GET /health/live`, `GET /h
 
 ![ERD](docs/assets/erd.png)
 
-| Entity | Purpose |
+| Entity | What it holds |
 | --- | --- |
-| `ApplicationUser` | Identity account of a student or an employee |
-| `Employee` / `EmployeeRole` | employees and their roles |
-| `Student` / `StudentGroup` | students and academic groups |
-| `Teacher` · `Discipline` | teachers and disciplines |
-| `Workload` | teacher × discipline × group |
+| `ApplicationUser` | Identity account of a student or staff member |
+| `Employee` / `EmployeeRole` | staff and their roles |
+| `Student` / `StudentGroup` | students and their groups |
+| `Teacher` · `Discipline` | teachers and courses |
+| `Workload` | teacher × course × group |
 | `Feedback` | a student's review of a workload |
-| `Criteria` / `CriteriaFeedback` | evaluation criteria and per-criterion scores |
+| `Criteria` / `CriteriaFeedback` | criteria and the score for each one |
 | `Refresh` | refresh tokens |
 
 ## Quick start
 
-Needs the external Docker network `web_network` and the Traefik proxy from
-[vsoko-infra](https://gitlab.com/vsoko/vsoko-infra).
+You need the external Docker network `web_network` and the Traefik proxy from `vsoko-infra`.
 
 ```bash
-cp .env.example .env    # POSTGRES_*, REDIS_*, Jwt__SecretKey, Cors__AllowedOrigins, AI__*
-docker compose up -d    # postgres, redis, api → http://localhost:8000, https://vsoko-api.semao0.ru
+cp .env.example .env
+docker compose up -d    # postgres, redis, api → http://localhost:8000
 ```
 
-Migrations are not applied on startup. Run them once after the database is up:
+Migrations don't run on startup. Apply them once the database is up:
 
 ```bash
 dotnet ef database update --project src/Infrastructure --startup-project src/Presentation
 ```
 
-**Local development** — only PostgreSQL and Redis in Docker:
+For local development, run only PostgreSQL and Redis in Docker:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 dotnet run --project src/Presentation
 ```
 
-**Importing a roster:**
+To import a roster:
 
 ```bash
 # CSV: GroupName,Semester,Surname,Name,Patronymic,StudentNumber — temp password Vsoko{StudentNumber}
