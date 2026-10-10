@@ -1,0 +1,11 @@
+<Project>
+  <!-- Покрытие собирается при каждом dotnet test, порог 90% по строкам для каждого модуля. -->
+  <PropertyGroup>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <!-- Сгенерированный код: миграции EF и source generator OpenAPI. -->
+    <ExcludeByFile>**/Migrations/*.cs,**/OpenApiXmlCommentSupport.generated.cs</ExcludeByFile>
+    <Threshold>90</Threshold>
+    <ThresholdType>line</ThresholdType>
+  </PropertyGroup>
+</Project>
