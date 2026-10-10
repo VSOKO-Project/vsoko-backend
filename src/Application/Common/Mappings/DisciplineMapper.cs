@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Domain.Entities;
 using Domain.Enums;
 using Riok.Mapperly.Abstractions;
@@ -18,13 +19,15 @@ public partial class DisciplineMapper
 
     public partial IQueryable<DisciplineDto> ProjectToDto(IQueryable<Discipline> q);
 
-    public IQueryable<RatingDto> ProjectToRating(IQueryable<Discipline> q)
+    public IQueryable<RatingDto> ProjectToRating(IQueryable<Discipline> q, PeriodFilter period)
     {
+        var inPeriod = period.ToWorkloadExpression();
+
         return q.Select(t => new RatingDto
         {
             Id = t.Id,
             Name = t.Name,
-            Grade = t.WorkloadRefs.SelectMany(w => w.FeedbackRefs)
+            Grade = t.WorkloadRefs!.AsQueryable().Where(inPeriod).SelectMany(w => w.FeedbackRefs!)
                 .SelectMany(f => f.CriteriaFeedbackRefs)
                 .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Discipline)
                 .Average(cf => (float?)cf.CriteriaScore) ?? 0f

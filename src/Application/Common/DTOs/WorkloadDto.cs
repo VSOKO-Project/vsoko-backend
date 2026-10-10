@@ -6,4 +6,5 @@ public class WorkloadDto
     public TeacherDto? Teacher { get; set; }
     public DisciplineDto? Discipline { get; set; }
     public StudentGroupDto? Group { get; set; }
+    public PeriodDto? Period { get; set; }
 }

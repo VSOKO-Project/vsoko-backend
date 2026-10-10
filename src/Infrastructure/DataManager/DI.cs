@@ -30,12 +30,15 @@ public static class DI
         services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<ITeacherRepository, TeacherRepository>();
         services.AddScoped<IWorkloadRepository, WorkloadRepository>();
+        services.AddScoped<IPeriodRepository, PeriodRepository>();
+        services.AddScoped<IImportRepository, ImportRepository>();
 
         services.AddSingleton<Application.Common.Mappings.CriteriaMapper>();
         services.AddSingleton<Application.Common.Mappings.DisciplineMapper>();
         services.AddSingleton<Application.Common.Mappings.FeedbackMapper>();
         services.AddSingleton<Application.Common.Mappings.TeacherMapper>();
         services.AddSingleton<Application.Common.Mappings.WorkloadMapper>();
+        services.AddSingleton<Application.Common.Mappings.AcademicPeriodMapper>();
 
         services.AddHealthChecks()
             .AddNpgSql(

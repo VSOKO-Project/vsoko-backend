@@ -1,6 +1,7 @@
 using Application.Common.DTOs;
 using Application.Common.Exceptions;
 using Application.Common.Mappings;
+using Application.Common.Periods;
 using Application.Common.Results;
 using Application.Common.Specification.FeedbackSpecification;
 using Application.Features.FeedbackFeatures.Command;
@@ -63,6 +64,8 @@ public class FeedbackRepository : IFeedbackRepository
                 .ThenInclude(w => w.DisciplineRef)
             .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.TeacherRef)
+            .Include(f => f.WorkloadRef!)
+                .ThenInclude(w => w.PeriodRef)
             .Where(f => f.StudentId == studentId)
             .Where(w => w.Id == feedback.Id);
 
@@ -88,7 +91,9 @@ public class FeedbackRepository : IFeedbackRepository
             .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.GroupRef)
             .Include(f => f.WorkloadRef!)
-                .ThenInclude(w => w.TeacherRef));
+                .ThenInclude(w => w.TeacherRef)
+            .Include(f => f.WorkloadRef!)
+                .ThenInclude(w => w.PeriodRef));
 
         if (!string.IsNullOrWhiteSpace(disciplineId))
             baseQuery = baseQuery.Where(f => f.WorkloadRef!.DisciplineId == disciplineId);
@@ -128,7 +133,8 @@ public class FeedbackRepository : IFeedbackRepository
             .Include(f => f.CriteriaFeedbackRefs!).ThenInclude(cf => cf.CriteriaRef)
             .Include(f => f.WorkloadRef!).ThenInclude(w => w.DisciplineRef)
             .Include(f => f.WorkloadRef!).ThenInclude(w => w.GroupRef)
-            .Include(f => f.WorkloadRef!).ThenInclude(w => w.TeacherRef));
+            .Include(f => f.WorkloadRef!).ThenInclude(w => w.TeacherRef)
+            .Include(f => f.WorkloadRef!).ThenInclude(w => w.PeriodRef));
 
         var feedback = await _mapper.ProjectToDto(query).FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
@@ -212,13 +218,27 @@ public class FeedbackRepository : IFeedbackRepository
             .AnyAsync(f => f.WorkloadId == workloadId, cancellationToken);
     }
 
+    public async Task<bool> IsFeedbackPeriodOpenAsync(string feedbackId, CancellationToken cancellationToken)
+    {
+        var spec = _accessService.GetSpecification();
+
+        var isOpen = await spec.Apply(_dbContext.Feedbacks)
+            .Where(f => f.Id == feedbackId)
+            .Select(f => (bool?)f.WorkloadRef!.PeriodRef!.IsFeedbackOpen)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return isOpen ?? throw new NotFoundException(nameof(Feedback), feedbackId);
+    }
+
     public async Task<List<string>> GetCommentByTeacherId(
         string id,
+        PeriodFilter period,
         CancellationToken cancellationToken
     )
     {
-
-        var query = _dbContext.Feedbacks.Where(w => w.WorkloadRef!.TeacherId.Equals(id));
+        var query = _dbContext.Feedbacks
+            .Where(w => w.WorkloadRef!.TeacherId.Equals(id))
+            .Where(period.ToFeedbackExpression());
 
         var comments = await _mapper.ProjectToDto(query).Select(w => w.Comment!).ToListAsync(cancellationToken);
 
@@ -230,10 +250,13 @@ public class FeedbackRepository : IFeedbackRepository
 
     public async Task<List<string>> GetCommentByDisciplineId(
         string id,
+        PeriodFilter period,
         CancellationToken cancellationToken
     )
     {
-        var query = _dbContext.Feedbacks.Where(w => w.WorkloadRef!.DisciplineId.Equals(id));
+        var query = _dbContext.Feedbacks
+            .Where(w => w.WorkloadRef!.DisciplineId.Equals(id))
+            .Where(period.ToFeedbackExpression());
 
         var comments = await _mapper.ProjectToDto(query).Select(w => w.Comment!).ToListAsync(cancellationToken);
 
@@ -243,9 +266,10 @@ public class FeedbackRepository : IFeedbackRepository
         return comments;
     }
 
-    public async Task<List<FeedbackDto>> GetAllFeedbacksAsync(CancellationToken cancellationToken)
+    public async Task<List<FeedbackDto>> GetAllFeedbacksAsync(PeriodFilter period, CancellationToken cancellationToken)
     {
         var baseQuery = _dbContext.Feedbacks
+            .Where(period.ToFeedbackExpression())
             .Include(f => f.CriteriaFeedbackRefs!)
                 .ThenInclude(cf => cf.CriteriaRef)
             .Include(f => f.WorkloadRef!)
@@ -253,7 +277,9 @@ public class FeedbackRepository : IFeedbackRepository
             .Include(f => f.WorkloadRef!)
                 .ThenInclude(w => w.GroupRef)
             .Include(f => f.WorkloadRef!)
-                .ThenInclude(w => w.TeacherRef);
+                .ThenInclude(w => w.TeacherRef)
+            .Include(f => f.WorkloadRef!)
+                .ThenInclude(w => w.PeriodRef);
 
         return await _mapper.ProjectToDto(baseQuery)
             .OrderBy(x => x.Id)

@@ -28,6 +28,8 @@ public class WorkloadRepository : IWorkloadRepository
         int page,
         string query,
         int pageSize,
+        string? periodId,
+        bool openPeriodOnly,
         CancellationToken cancellationToken
     )
     {
@@ -36,6 +38,11 @@ public class WorkloadRepository : IWorkloadRepository
         var qury = spec.Apply(
             _dbContext.Workloads.Include(w => w.TeacherRef).Include(w => w.DisciplineRef)
         );
+
+        if (periodId is not null)
+            qury = qury.Where(w => w.PeriodId == periodId);
+        else if (openPeriodOnly)
+            qury = qury.Where(w => w.PeriodRef!.IsFeedbackOpen);
 
         var baseQuery = qury.WhereNameOrTeacherContains(query);
 
@@ -72,5 +79,17 @@ public class WorkloadRepository : IWorkloadRepository
             throw new NotFoundException(nameof(Workload), id);
 
         return workload;
+    }
+
+    public async Task<bool> IsFeedbackPeriodOpenAsync(string workloadId, CancellationToken cancellationToken)
+    {
+        var spec = _accessService.GetSpecification();
+
+        var isOpen = await spec.Apply(_dbContext.Workloads)
+            .Where(w => w.Id == workloadId)
+            .Select(w => (bool?)w.PeriodRef!.IsFeedbackOpen)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return isOpen ?? throw new NotFoundException(nameof(Workload), workloadId);
     }
 }

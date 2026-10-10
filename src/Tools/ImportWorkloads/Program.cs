@@ -8,7 +8,8 @@
 // (TeacherFio = "Фамилия Имя Отчество", any casing)
 //
 // Idempotent: existing teachers (by Surname+Name+Patronymic), disciplines (by Name),
-// and workloads (by Teacher+Discipline+Group) are reused/skipped. Groups must already exist.
+// and workloads (by Teacher+Discipline+Group+Period) are reused/skipped. Groups must already exist.
+// Workloads go to the period with open feedback collection.
 
 using Domain.Entities;
 using Infrastructure.DataManager;
@@ -55,6 +56,14 @@ await using var provider = services.BuildServiceProvider();
 using var scope = provider.CreateScope();
 
 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+// Нагрузка добавляется в период, у которого открыт сбор отзывов.
+var period = await db.AcademicPeriods.FirstOrDefaultAsync(p => p.IsFeedbackOpen);
+if (period is null)
+{
+    Console.Error.WriteLine("No academic period with open feedback collection.");
+    return 1;
+}
 
 var teachersCreated = 0;
 var disciplinesCreated = 0;
@@ -103,7 +112,7 @@ foreach (var row in rows)
     }
 
     var existingWorkload = await db.Workloads.FirstOrDefaultAsync(w =>
-        w.TeacherId == teacher.Id && w.DisciplineId == discipline.Id && w.GroupId == group.Id);
+        w.TeacherId == teacher.Id && w.DisciplineId == discipline.Id && w.GroupId == group.Id && w.PeriodId == period.Id);
 
     if (existingWorkload is not null)
     {
@@ -116,6 +125,7 @@ foreach (var row in rows)
         TeacherId = teacher.Id,
         DisciplineId = discipline.Id,
         GroupId = group.Id,
+        PeriodId = period.Id,
     });
     await db.SaveChangesAsync();
     workloadsCreated++;

@@ -42,6 +42,9 @@ public class PutFeedbackRequestHandler : IRequestHandler<PutFeedbackRequest, Fee
         var userId = _userContext.UserId ?? throw new UnauthorizedAccessException();
         var key = CacheKeys.Feedback.GetById(request.Id!, userId);
 
+        if (!await _feedbackRepository.IsFeedbackPeriodOpenAsync(request.Id!, cancellationToken))
+            throw new Common.Exceptions.ValidationException(FeedbackMessages.PeriodClosed);
+
         var result = await _feedbackRepository.PutFeedback(
             request.Id!,
             request.Comment,

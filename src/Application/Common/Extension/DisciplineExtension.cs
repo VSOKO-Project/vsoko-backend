@@ -1,9 +1,19 @@
+using Application.Common.Periods;
 using Domain.Entities;
 
 namespace Application.Common.Extension;
 
 public static class DisciplineQueryExtensions
 {
+    public static IQueryable<Discipline> WhereHasWorkloadIn(this IQueryable<Discipline> query, PeriodFilter period)
+    {
+        if (period.IsEmpty)
+            return query;
+
+        var inPeriod = period.ToWorkloadExpression();
+        return query.Where(d => d.WorkloadRefs!.AsQueryable().Any(inPeriod));
+    }
+
     public static IQueryable<Discipline> WhereNameOrTeacherContains(
         this IQueryable<Discipline> query,
         string? searchTerm

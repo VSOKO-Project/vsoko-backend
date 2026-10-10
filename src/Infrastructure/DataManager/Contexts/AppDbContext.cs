@@ -25,6 +25,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Feedback> Feedbacks { get; set; }
     public DbSet<Teacher> Teachers { get; set; }
     public DbSet<Refresh> Refreshes { get; set; }
+    public DbSet<AcademicPeriod> AcademicPeriods { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +44,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.ApplyConfiguration(new FeedbackConfiguration());
         modelBuilder.ApplyConfiguration(new TeacherConfiguration());
         modelBuilder.ApplyConfiguration(new RefreshConfiguration());
+        modelBuilder.ApplyConfiguration(new AcademicPeriodConfiguration());
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {

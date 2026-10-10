@@ -82,6 +82,12 @@ builder.Services.AddControllers(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+// Ответы GlobalExceptionHandler сериализуются так же, как ответы контроллеров.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
 builder.Services.ApplyUserContext();
 
 var app = builder.Build();

@@ -1,5 +1,6 @@
 using Application.Common.Caching;
 using Application.Common.CQRS;
+using Application.Common.Periods;
 using Application.Interfaces.AIManager;
 using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
@@ -7,7 +8,7 @@ using MediatR;
 
 namespace Application.Features.SummariesFeatures.Query;
 
-public record GetTeacherSummaryByIdQuery(string Id) : IRequest<string>, IQuery;
+public record GetTeacherSummaryByIdQuery(string Id, string? PeriodId = null, int? StartYear = null) : IRequest<string>, IQuery;
 
 public class GetTeacherSummaryByIdQueryHandler : IRequestHandler<GetTeacherSummaryByIdQuery, string>
 {
@@ -30,7 +31,8 @@ public class GetTeacherSummaryByIdQueryHandler : IRequestHandler<GetTeacherSumma
 
     public async Task<string> Handle(GetTeacherSummaryByIdQuery request, CancellationToken cancellationToken)
     {
-        var key = CacheKeys.Teacher.GetSummary(request.Id);
+        var period = new PeriodFilter(request.PeriodId, request.StartYear);
+        var key = CacheKeys.Teacher.GetSummary(request.Id, period);
         var tag = CacheKeys.Teacher.ListTag;
 
         return (await _cacheService.GetOrCreateAsync(
@@ -38,7 +40,7 @@ public class GetTeacherSummaryByIdQueryHandler : IRequestHandler<GetTeacherSumma
             async (ct) =>
             {
                 var teacher = await _teacherRepository.GetByIdAsync(request.Id, ct);
-                var comments = await _feedbackRepository.GetCommentByTeacherId(request.Id, ct);
+                var comments = await _feedbackRepository.GetCommentByTeacherId(request.Id, period, ct);
                 return await _feedbackSummarizer.SummarizeTeacherAsync(teacher.FullName, comments, ct);
             },
             [tag],

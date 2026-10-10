@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Common.Mappings;
 using Application.Common.Results;
 using Application.Interfaces.DataManager.Repositories;
@@ -24,6 +25,7 @@ public class TeacherRepository : ITeacherRepository
         int page,
         string? query,
         int pageSize,
+        PeriodFilter period,
         CancellationToken cancellationToken = default
     )
     {
@@ -32,11 +34,12 @@ public class TeacherRepository : ITeacherRepository
                 .ThenInclude(w => w.FeedbackRefs!)
                     .ThenInclude(w => w.CriteriaFeedbackRefs!)
                         .ThenInclude(w => w.CriteriaRef)
-            .WhereNameContains(query);
+            .WhereNameContains(query)
+            .WhereHasWorkloadIn(period);
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-        var items = await _mapper.ProjectToRating(baseQuery)
+        var items = await _mapper.ProjectToRating(baseQuery, period)
             .OrderBy(x => x.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -53,6 +56,7 @@ public class TeacherRepository : ITeacherRepository
     }
 
     public async Task<List<RatingDto>> GetAllRatingAsync(
+        PeriodFilter period,
         CancellationToken cancellationToken = default
     )
     {
@@ -60,9 +64,10 @@ public class TeacherRepository : ITeacherRepository
             .Teachers.Include(w => w.WorkloadsRefs!)
                 .ThenInclude(w => w.FeedbackRefs!)
                     .ThenInclude(w => w.CriteriaFeedbackRefs!)
-                        .ThenInclude(w => w.CriteriaRef);
+                        .ThenInclude(w => w.CriteriaRef)
+            .WhereHasWorkloadIn(period);
 
-        var items = await _mapper.ProjectToRating(baseQuery)
+        var items = await _mapper.ProjectToRating(baseQuery, period)
             .ToListAsync(cancellationToken);
 
         return items;

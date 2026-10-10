@@ -3,6 +3,7 @@ using System.Data;
 using Application.Common.Caching;
 using Application.Common.CQRS;
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Common.Results;
 using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
@@ -16,6 +17,8 @@ public class GetTeachersRatingRequest : IRequest<PagedResultDto<RatingDto>>, IQu
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     public string? Query { get; init; }
+    public string? PeriodId { get; init; }
+    public int? StartYear { get; init; }
 }
 
 public class GetTeachersRatingRequestValidator : AbstractValidator<GetTeachersRatingRequest>
@@ -44,9 +47,10 @@ public class GetTeachersRatingRequestHandler
         CancellationToken cancellationToken
     )
     {
-        var key = CacheKeys.Teacher.GetPaged(request.Page, request.PageSize, request.Query ?? "");
+        var period = new PeriodFilter(request.PeriodId, request.StartYear);
+        var key = CacheKeys.Teacher.GetRating(request.Page, request.PageSize, request.Query ?? "", period);
         var tag = CacheKeys.Teacher.ListTag;
 
-        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _teacherRepository.GetRatingAsync(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _teacherRepository.GetRatingAsync(request.Page, request.Query ?? "", request.PageSize, period, ct), [tag], cancellationToken))!;
     }
 }

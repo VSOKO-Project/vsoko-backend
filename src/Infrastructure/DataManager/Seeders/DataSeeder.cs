@@ -135,6 +135,9 @@ public static class DataSeeder
         // Каждый преподаватель ведёт 2-3 дисциплины в разных группах
         var workloads = new List<Workload>();
 
+        // Период создаётся миграцией AddAcademicPeriods.
+        var period = await db.AcademicPeriods.OrderByDescending(p => p.IsFeedbackOpen).FirstAsync();
+
         void AddWorkload(int teacherIdx, int disciplineIdx, int groupIdx)
         {
             workloads.Add(new Workload
@@ -142,6 +145,7 @@ public static class DataSeeder
                 TeacherRef = teachers[teacherIdx],
                 DisciplineRef = disciplines[disciplineIdx],
                 GroupRef = groups[groupIdx],
+                PeriodId = period.Id,
             });
         }
 

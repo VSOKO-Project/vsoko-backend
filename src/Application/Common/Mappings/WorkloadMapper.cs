@@ -16,9 +16,13 @@ public partial class WorkloadMapper
     [UseMapper]
     private readonly StudentGroupMapper _studentGroupMapper = new();
 
+    [UseMapper]
+    private readonly AcademicPeriodMapper _periodMapper = new();
+
     [MapperIgnoreSource(nameof(Workload.GroupId))]
     [MapperIgnoreSource(nameof(Workload.DisciplineId))]
     [MapperIgnoreSource(nameof(Workload.TeacherId))]
+    [MapperIgnoreSource(nameof(Workload.PeriodId))]
     [MapperIgnoreSource(nameof(Workload.FeedbackRefs))]
     [MapperIgnoreSource(nameof(Workload.CreatedAtUtc))]
     [MapperIgnoreSource(nameof(Workload.UpdatedAtUtc))]
@@ -29,6 +33,7 @@ public partial class WorkloadMapper
     [MapProperty(nameof(Workload.TeacherRef), nameof(WorkloadDto.Teacher))]
     [MapProperty(nameof(Workload.DisciplineRef), nameof(WorkloadDto.Discipline))]
     [MapProperty(nameof(Workload.GroupRef), nameof(WorkloadDto.Group))]
+    [MapProperty(nameof(Workload.PeriodRef), nameof(WorkloadDto.Period))]
     public partial WorkloadDto MapSingle(Workload workload);
 
     public partial IQueryable<WorkloadDto> WorkloadToDto(IQueryable<Workload> workload);

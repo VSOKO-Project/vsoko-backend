@@ -1,5 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Common.Results;
 using Application.Interfaces.CachingManager;
 using Application.Interfaces.DataManager.Repositories;
@@ -15,6 +16,8 @@ public class GetDisciplineRatingRequest : IRequest<PagedResultDto<RatingDto>>, I
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     public string? Query { get; init; }
+    public string? PeriodId { get; init; }
+    public int? StartYear { get; init; }
 }
 
 public class GetDisciplineRatingRequestValidator : AbstractValidator<GetDisciplineRatingRequest>
@@ -43,9 +46,10 @@ public class GetDisciplineRatingRequestHandler
         CancellationToken cancellationToken
     )
     {
-        var key = CacheKeys.Discipline.GetPaged(request.Page, request.PageSize, request.Query ?? "");
+        var period = new PeriodFilter(request.PeriodId, request.StartYear);
+        var key = CacheKeys.Discipline.GetRating(request.Page, request.PageSize, request.Query ?? "", period);
         var tag = CacheKeys.Discipline.ListTag;
 
-        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _disciplineRepository.GetRatingAsync(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _disciplineRepository.GetRatingAsync(request.Page, request.Query ?? "", request.PageSize, period, ct), [tag], cancellationToken))!;
     }
 }

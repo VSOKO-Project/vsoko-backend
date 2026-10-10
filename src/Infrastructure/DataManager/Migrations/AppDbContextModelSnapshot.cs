@@ -22,6 +22,54 @@ namespace Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Domain.Entities.AcademicPeriod", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFeedbackOpen")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("StartYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Term")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsFeedbackOpen")
+                        .IsUnique()
+                        .HasFilter("\"IsFeedbackOpen\" = true AND \"IsDeleted\" = false");
+
+                    b.HasIndex("StartYear", "Term")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("AcademicPeriods");
+                });
+
             modelBuilder.Entity("Domain.Entities.Criteria", b =>
                 {
                     b.Property<string>("Id")
@@ -141,6 +189,10 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
                     b.ToTable("Disciplines");
                 });
 
@@ -252,9 +304,11 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StudentId");
-
                     b.HasIndex("WorkloadId");
+
+                    b.HasIndex("StudentId", "WorkloadId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Feedbacks");
                 });
@@ -420,6 +474,10 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Surname", "Name", "Patronymic")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
                     b.ToTable("Teachers");
                 });
 
@@ -449,6 +507,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("PeriodId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("TeacherId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -465,7 +527,11 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("GroupId");
 
-                    b.HasIndex("TeacherId");
+                    b.HasIndex("PeriodId");
+
+                    b.HasIndex("TeacherId", "DisciplineId", "GroupId", "PeriodId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Workloads");
                 });
@@ -803,6 +869,12 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.AcademicPeriod", "PeriodRef")
+                        .WithMany("WorkloadRefs")
+                        .HasForeignKey("PeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Domain.Entities.Teacher", "TeacherRef")
                         .WithMany("WorkloadsRefs")
                         .HasForeignKey("TeacherId")
@@ -812,6 +884,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("DisciplineRef");
 
                     b.Navigation("GroupRef");
+
+                    b.Navigation("PeriodRef");
 
                     b.Navigation("TeacherRef");
                 });
@@ -865,6 +939,11 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.AcademicPeriod", b =>
+                {
+                    b.Navigation("WorkloadRefs");
                 });
 
             modelBuilder.Entity("Domain.Entities.Criteria", b =>

@@ -21,9 +21,9 @@ public class SummariesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<ApiSuccessResult<string>> GetTeacherSummary(string id)
+    public async Task<ApiSuccessResult<string>> GetTeacherSummary(string id, [FromQuery] string? periodId, [FromQuery] int? startYear)
     {
-        var result = await _sender.Send(new GetTeacherSummaryByIdQuery(id));
+        var result = await _sender.Send(new GetTeacherSummaryByIdQuery(id, periodId, startYear));
 
         return new ApiSuccessResult<string>
         {
@@ -40,9 +40,9 @@ public class SummariesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<ApiSuccessResult<string>> GetDisciplineSummary(string id)
+    public async Task<ApiSuccessResult<string>> GetDisciplineSummary(string id, [FromQuery] string? periodId, [FromQuery] int? startYear)
     {
-        var result = await _sender.Send(new GetDisciplineSummaryByIdQuery(id));
+        var result = await _sender.Send(new GetDisciplineSummaryByIdQuery(id, periodId, startYear));
 
         return new ApiSuccessResult<string>
         {

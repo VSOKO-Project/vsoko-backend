@@ -1,11 +1,11 @@
 using Application.Common.CQRS;
+using Application.Common.Periods;
 using Application.Interfaces.FileManager;
 using MediatR;
-using Microsoft.AspNetCore.DataProtection.KeyManagement.Internal;
 
 namespace Application.Features.ReportFeatures.Query;
 
-public class ReportQuery : IRequest<byte[]>, IQuery;
+public record ReportQuery(string? PeriodId = null, int? StartYear = null) : IRequest<byte[]>, IQuery;
 
 public class ReportQueryHandler : IRequestHandler<ReportQuery, byte[]>
 {
@@ -18,6 +18,6 @@ public class ReportQueryHandler : IRequestHandler<ReportQuery, byte[]>
 
     public async Task<byte[]> Handle(ReportQuery request, CancellationToken cancellationToken)
     {
-        return await _reportService.GenerateReportAsync(cancellationToken);
+        return await _reportService.GenerateReportAsync(new PeriodFilter(request.PeriodId, request.StartYear), cancellationToken);
     }
 }

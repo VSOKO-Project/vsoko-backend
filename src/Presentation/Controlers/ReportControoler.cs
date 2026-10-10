@@ -22,9 +22,9 @@ public class ReportController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
-    public async Task<FileContentResult> Post(CancellationToken cancellationToken)
+    public async Task<FileContentResult> Post([FromQuery] string? periodId, [FromQuery] int? startYear, CancellationToken cancellationToken)
     {
-        var doc = await _sender.Send(new ReportQuery(), cancellationToken);
+        var doc = await _sender.Send(new ReportQuery(periodId, startYear), cancellationToken);
 
         return File(doc, "application/pdf", $"RatingVsoko-{DateTime.Now:dd-MM-yyyy}.pdf");
     }

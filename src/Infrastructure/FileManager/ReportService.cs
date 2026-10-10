@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Interfaces.DataManager.Repositories;
 using Application.Interfaces.FileManager;
 using QuestPDF.Fluent;
@@ -14,25 +15,29 @@ public class ReportService : IReportService
     private readonly IDisciplineRepository _disciplineRepository;
     private readonly ICriteriaRepository _criteriaRepository;
     private readonly IFeedbackRepository _feedbackRepository;
+    private readonly IPeriodRepository _periodRepository;
 
     public ReportService(
         ITeacherRepository teacherRepository, 
         IDisciplineRepository disciplineRepository,
         ICriteriaRepository criteriaRepository,
-        IFeedbackRepository feedbackRepository)
+        IFeedbackRepository feedbackRepository,
+        IPeriodRepository periodRepository)
     {
+        _periodRepository = periodRepository;
         _teacherRepository = teacherRepository;
         _disciplineRepository = disciplineRepository;
         _criteriaRepository = criteriaRepository;
         _feedbackRepository = feedbackRepository;
     }
 
-    public async Task<byte[]> GenerateReportAsync(CancellationToken cancellationToken)
+    public async Task<byte[]> GenerateReportAsync(PeriodFilter period, CancellationToken cancellationToken)
     {
-        var disciplinesRating = await _disciplineRepository.GetAllRatingAsync(cancellationToken);
-        var teacherRating = await _teacherRepository.GetAllRatingAsync(cancellationToken);
-        var criteriaRating = await _criteriaRepository.GetAllRatingAsync(cancellationToken);
-        var feedbacks = await _feedbackRepository.GetAllFeedbacksAsync(cancellationToken);
+        var periodTitle = await GetPeriodTitleAsync(period, cancellationToken);
+        var disciplinesRating = await _disciplineRepository.GetAllRatingAsync(period, cancellationToken);
+        var teacherRating = await _teacherRepository.GetAllRatingAsync(period, cancellationToken);
+        var criteriaRating = await _criteriaRepository.GetAllRatingAsync(period, cancellationToken);
+        var feedbacks = await _feedbackRepository.GetAllFeedbacksAsync(period, cancellationToken);
 
         var avgTeacher = teacherRating.Where(x => x.Grade > 0).Select(x => x.Grade).DefaultIfEmpty(0).Average();
         var avgDiscipline = disciplinesRating.Where(x => x.Grade > 0).Select(x => x.Grade).DefaultIfEmpty(0).Average();
@@ -54,6 +59,7 @@ public class ReportService : IReportService
                     {
                         col.Item().Text("VSOKO-unn").FontSize(20).Bold().FontColor(Colors.Blue.Medium);
                         col.Item().Text("Система мониторинга качества образования").FontSize(9).Italic();
+                        col.Item().PaddingTop(4).Text($"Период: {periodTitle}").FontSize(11).SemiBold();
                     });
                 });
 
@@ -128,6 +134,17 @@ public class ReportService : IReportService
                 });
             });
         }).GeneratePdf();
+    }
+
+    private async Task<string> GetPeriodTitleAsync(PeriodFilter period, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(period.PeriodId))
+            return (await _periodRepository.GetByIdAsync(period.PeriodId, cancellationToken)).Title;
+
+        if (period.StartYear is { } startYear)
+            return $"{PeriodCalculator.YearTitle(startYear)} учебный год";
+
+        return "за всё время";
     }
 
     private void GenerateRatingTable(TableDescriptor table, IEnumerable<RatingDto> data, string nameColumnTitle, double average)

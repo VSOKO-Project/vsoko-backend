@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Domain.Entities;
 using Riok.Mapperly.Abstractions;
 
@@ -17,13 +18,15 @@ public partial class CriteriaMapper
     
     public partial IQueryable<CriteriaDto> ProjectToDto(IQueryable<Criteria> q);
 
-    public IQueryable<RatingDto> ProjectToRating(IQueryable<Criteria> q)
+    public IQueryable<RatingDto> ProjectToRating(IQueryable<Criteria> q, PeriodFilter period)
     {
+        var inPeriod = period.ToCriteriaFeedbackExpression();
+
         return q.Select(t => new RatingDto
         {
             Id = t.Id,
             Name = t.Name,
-            Grade = t.CriteriaFeedbackRefs!
+            Grade = t.CriteriaFeedbackRefs!.AsQueryable().Where(inPeriod)
                 .Average(cf => (float?)cf.CriteriaScore) ?? 0f
         });
     }

@@ -25,6 +25,10 @@ public static class DependencyInjection
         service.AddScoped<IWorkloadAccessService, WorkloadAccessService>();
         service.AddScoped<IFeedbackAccessService, FeedbackAccessService>();
 
+        service.AddSingleton(TimeProvider.System);
+
+        service.AddScoped<Features.ImportFeatures.ImportPlanner>();
+
         return service;
     }
 }

@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Infrastructure.DataManager.Common;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.DataManager.Configurations;
@@ -13,5 +14,10 @@ public class TeacherConfiguration : BaseEntityConfiguration<Teacher>
         builder.Property(w => w.Name).IsRequired().HasMaxLength(255);
         builder.Property(w => w.Surname).IsRequired().HasMaxLength(255);
         builder.Property(w => w.Patronymic).IsRequired().HasMaxLength(255);
+
+        builder
+            .HasIndex(w => new { w.Surname, w.Name, w.Patronymic })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
     }
 }

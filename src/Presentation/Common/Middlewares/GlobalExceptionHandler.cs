@@ -33,6 +33,13 @@ public static class GlobalExceptionHandler
                         Status = Status401Unauthorized,
                         Detail = e.Message,
                     },
+                    Application.Common.Exceptions.ImportValidationException e => new ProblemDetails
+                    {
+                        Title = "Validation Exception",
+                        Status = Status400BadRequest,
+                        Detail = e.Message,
+                        Extensions = { ["report"] = e.Report },
+                    },
                     Application.Common.Exceptions.ValidationException e => new ProblemDetails
                     {
                         Title = "Validation Exception",

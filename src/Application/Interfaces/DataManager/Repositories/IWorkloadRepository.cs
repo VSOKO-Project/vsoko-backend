@@ -10,8 +10,15 @@ public interface IWorkloadRepository : IRepository<Workload>
         int page,
         string query,
         int pageSize,
+        string? periodId,
+        bool openPeriodOnly,
         CancellationToken cancellationToken
     );
 
     public Task<WorkloadDto> GetWorkloadById(string id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Открыт ли сбор отзывов в периоде нагрузки.
+    /// </summary>
+    public Task<bool> IsFeedbackPeriodOpenAsync(string workloadId, CancellationToken cancellationToken);
 }

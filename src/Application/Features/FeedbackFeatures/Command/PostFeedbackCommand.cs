@@ -36,16 +36,19 @@ public class PostFeedbackRequestValidator : AbstractValidator<PostFeedbackReques
 public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, FeedbackDto>
 {
     private readonly IFeedbackRepository _feedbackRepository;
+    private readonly IWorkloadRepository _workloadRepository;
     private readonly IUserContext _userContext;
     private readonly ICacheService _cacheService;
 
     public PostFeedbackRequestHandler(
         IFeedbackRepository feedbackRepository,
+        IWorkloadRepository workloadRepository,
         IUserContext userContext,
         ICacheService cacheService
     )
     {
         _feedbackRepository = feedbackRepository;
+        _workloadRepository = workloadRepository;
         _userContext = userContext;
         _cacheService = cacheService;
     }
@@ -61,6 +64,9 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
 
         if (hasFeedback)
             throw new Common.Exceptions.ValidationException("Вы уже оставляли отзыв на эту дисциплину.");
+
+        if (!await _workloadRepository.IsFeedbackPeriodOpenAsync(request.workloadId!, cancellationToken))
+            throw new Common.Exceptions.ValidationException(FeedbackMessages.PeriodClosed);
 
         var result = await _feedbackRepository.PostFeedback(
             request.Feedback!,

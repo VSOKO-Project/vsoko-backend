@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Domain.Entities;
 using Domain.Enums;
 using Riok.Mapperly.Abstractions;
@@ -26,13 +27,15 @@ public partial class TeacherMapper
     [MapProperty(nameof(Teacher.Surname), nameof(RatingDto.Name))]
     public partial RatingDto MapToRating(Teacher teacher);
 
-    public IQueryable<RatingDto> ProjectToRating(IQueryable<Teacher> q)
+    public IQueryable<RatingDto> ProjectToRating(IQueryable<Teacher> q, PeriodFilter period)
     {
+        var inPeriod = period.ToWorkloadExpression();
+
         return q.Select(t => new RatingDto
         {
             Id = t.Id,
             Name = (t.Surname + " " + t.Name + " " + t.Patronymic).Trim(),
-            Grade = t.WorkloadsRefs.SelectMany(w => w.FeedbackRefs!)
+            Grade = t.WorkloadsRefs!.AsQueryable().Where(inPeriod).SelectMany(w => w.FeedbackRefs!)
                 .SelectMany(f => f.CriteriaFeedbackRefs!)
                 .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Teacher)
                 .Average(cf => (float?)cf.CriteriaScore) ?? 0f

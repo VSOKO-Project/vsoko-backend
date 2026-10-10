@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Common.Mappings;
 using Application.Common.Results;
 using Application.Interfaces.DataManager.Repositories;
@@ -24,6 +25,7 @@ public class DisciplineRepository : IDisciplineRepository
         int page,
         string? query,
         int pageSize,
+        PeriodFilter period,
         CancellationToken cancellationToken
     )
     {
@@ -32,11 +34,12 @@ public class DisciplineRepository : IDisciplineRepository
                 .ThenInclude(w => w.FeedbackRefs!)
                     .ThenInclude(w => w.CriteriaFeedbackRefs!)
                         .ThenInclude(w => w.CriteriaRef)
-            .WhereNameOrTeacherContains(query);
+            .WhereNameOrTeacherContains(query)
+            .WhereHasWorkloadIn(period);
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-        var items = await _mapper.ProjectToRating(baseQuery)
+        var items = await _mapper.ProjectToRating(baseQuery, period)
             .OrderBy(x => x.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -53,6 +56,7 @@ public class DisciplineRepository : IDisciplineRepository
     }
 
     public async Task<List<RatingDto>> GetAllRatingAsync(
+        PeriodFilter period,
         CancellationToken cancellationToken
     )
     {
@@ -60,11 +64,10 @@ public class DisciplineRepository : IDisciplineRepository
             .Disciplines.Include(w => w.WorkloadRefs!)
                 .ThenInclude(w => w.FeedbackRefs!)
                     .ThenInclude(w => w.CriteriaFeedbackRefs!)
-                        .ThenInclude(w => w.CriteriaRef);
+                        .ThenInclude(w => w.CriteriaRef)
+            .WhereHasWorkloadIn(period);
 
-        var totalCount = await baseQuery.CountAsync(cancellationToken);
-
-        var items = await _mapper.ProjectToRating(baseQuery)
+        var items = await _mapper.ProjectToRating(baseQuery, period)
             .ToListAsync(cancellationToken);
 
         return items;

@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Interfaces.DataManager.Repositories;
 using Domain.Entities;
 using Domain.Enums;
@@ -22,6 +23,7 @@ public interface ICriteriaRepository : IRepository<Criteria>
         CancellationToken cancellationToken
     );
         public Task<List<RatingDto>> GetAllRatingAsync(
+        PeriodFilter period,
         CancellationToken cancellationToken
     );
 }

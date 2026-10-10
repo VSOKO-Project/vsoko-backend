@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Common.Mappings;
 using Application.Common.Exceptions;
 using Application.Interfaces.DataManager.Repositories;
@@ -82,15 +83,14 @@ public class CriteriaRepository : ICriteriaRepository
     }
 
     public async Task<List<RatingDto>> GetAllRatingAsync(
+        PeriodFilter period,
         CancellationToken cancellationToken
     )
     {
         var baseQuery = _dbContext
             .Criterias.Include(w => w.CriteriaFeedbackRefs);
 
-        var totalCount = await baseQuery.CountAsync(cancellationToken);
-
-        var items = await _mapper.ProjectToRating(baseQuery)
+        var items = await _mapper.ProjectToRating(baseQuery, period)
             .ToListAsync(cancellationToken);
 
         return items;

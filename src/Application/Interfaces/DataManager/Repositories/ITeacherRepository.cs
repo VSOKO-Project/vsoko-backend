@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Periods;
 using Application.Common.Results;
 using Domain.Entities;
 
@@ -10,10 +11,12 @@ public interface ITeacherRepository : IRepository<Teacher>
         int page,
         string query,
         int pageSize,
+        PeriodFilter period,
         CancellationToken cancellationToken
     );
 
     public Task<List<RatingDto>> GetAllRatingAsync(
+        PeriodFilter period,
         CancellationToken cancellationToken
     );
 

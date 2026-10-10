@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Infrastructure.DataManager.Common;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.DataManager.Configurations;
@@ -11,5 +12,7 @@ public class DisciplineConfiguration : BaseEntityConfiguration<Discipline>
         base.Configure(builder);
 
         builder.Property(w => w.Name).IsRequired().HasMaxLength(100);
+
+        builder.HasIndex(w => w.Name).IsUnique().HasFilter("\"IsDeleted\" = false");
     }
 }
