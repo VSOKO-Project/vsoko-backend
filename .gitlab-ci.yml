@@ -28,7 +28,9 @@ build_image:
   stage: build
   image: docker:27.5.0
   services:
-    - docker:27.5.0-dind
+    # На shared-раннерах GitLab.com MTU 1460: с MTU 1500 по умолчанию HTTPS из docker build зависает.
+    - name: docker:27.5.0-dind
+      command: ["--mtu=1460"]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     GIT_SUBMODULE_DEPTH: 1
