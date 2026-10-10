@@ -28,17 +28,18 @@ build_image:
   stage: build
   image: docker:27.5.0
   services:
-    # На shared-раннерах GitLab.com MTU 1460: с MTU 1500 по умолчанию HTTPS из docker build зависает.
-    - name: docker:27.5.0-dind
-      command: ["--mtu=1460"]
+    - docker:27.5.0-dind
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     GIT_SUBMODULE_DEPTH: 1
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker build --pull --provenance=false --sbom=false -t $DOCKER_IMAGE_NAME .
-    - docker push $DOCKER_IMAGE_NAME
+    - docker buildx create --use --driver docker-container --driver-opt network=host
+    - docker buildx build --pull --provenance=false --sbom=false
+        --cache-from type=registry,ref=$CI_REGISTRY_IMAGE:buildcache
+        --cache-to type=registry,ref=$CI_REGISTRY_IMAGE:buildcache,mode=max
+        -t $DOCKER_IMAGE_NAME --push .
   only:
     - main
     - stage
