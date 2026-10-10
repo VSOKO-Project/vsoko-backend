@@ -40,12 +40,10 @@ public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, P
         ? CacheKeys.Feedback.GetPagedForStudent(request.Page, request.PageSize, userId!, request.DisciplineId, request.TeacherId, request.WorkloadId)
         : CacheKeys.Feedback.GetPaged(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId);
 
-        var tag = CacheKeys.Feedback.ListTag(userId);
-
         return (await _cacheService.GetOrCreateAsync(
             key,
             async (ct) => await _feedbackRepository.GetPagedFeedbacks(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, ct),
-            [tag],
+            [CacheKeys.Feedback.Tag],
             cancellationToken))!;
     }
 }

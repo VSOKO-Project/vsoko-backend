@@ -36,11 +36,9 @@ public class DeleteFeedbackRequestHandler : IRequestHandler<DeleteFeedbackReques
 
     public async Task<Unit> Handle(DeleteFeedbackRequest request, CancellationToken cancellationToken)
     {
-        var userId = _userContext.UserId ?? throw new UnauthorizedAccessException();
-        var key = CacheKeys.Feedback.GetById(request.Id!, userId);
+        _ = _userContext.UserId ?? throw new UnauthorizedAccessException();
 
-        await _cacheService.RemoveAsync(key, cancellationToken);
-        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(userId), cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.Tag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Workload.ListTag, cancellationToken);

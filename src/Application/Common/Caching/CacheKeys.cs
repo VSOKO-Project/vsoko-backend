@@ -30,7 +30,8 @@ public static class CacheKeys
 
     public static class Feedback
     {
-        public static string ListTag(string studentId) => $"feedback-list:student:{studentId}";
+        // Общий тег всех выборок отзывов: изменение отзыва студентом должно сбрасывать и кэш админа.
+        public static string Tag => "feedback";
         public static string GetByStudent(string userId) => $"feedback:student:{userId}";
         public static string GetById(string id, string studentId) => $"feedback:id:{id}:student:{studentId}";
         public static string GetPaged(int page, int pageSize, string? disciplineId = null, string? teacherId = null, string? workloadId = null) => $"feedback:list:p{page}:s{pageSize}:d{disciplineId}:t{teacherId}:w{workloadId}";

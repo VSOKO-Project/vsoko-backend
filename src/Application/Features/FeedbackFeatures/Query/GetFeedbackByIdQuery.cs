@@ -31,6 +31,7 @@ public class GetFeedbackByIdQueryHandler : IRequestHandler<GetFeedbackByIdQuery,
         return (await _cacheService.GetOrCreateAsync(
             key,
             async (ct) => await _feedbackRepository.GetFeedbackById(request.Id, ct),
-            cancellationToken: cancellationToken))!;
+            [CacheKeys.Feedback.Tag],
+            cancellationToken))!;
     }
 }

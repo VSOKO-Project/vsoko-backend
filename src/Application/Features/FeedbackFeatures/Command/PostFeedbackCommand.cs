@@ -58,6 +58,8 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
         CancellationToken cancellationToken
     )
     {
+        var userId = _userContext.UserId ?? throw new UnauthorizationException("Invalid token");
+
         var hasFeedback = await _feedbackRepository.HasFeedbackAsync(
             request.workloadId!, 
             cancellationToken);
@@ -72,11 +74,11 @@ public class PostFeedbackRequestHandler : IRequestHandler<PostFeedbackRequest, F
             request.Feedback!,
             request.Comment,
             request.workloadId!,
-            _userContext.UserId,
+            userId,
             cancellationToken
         );
 
-        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.ListTag(_userContext.UserId ?? throw new UnauthorizationException("Invalid token")), cancellationToken);
+        await _cacheService.RemoveByTagAsync(CacheKeys.Feedback.Tag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
         await _cacheService.RemoveByTagAsync(CacheKeys.Workload.ListTag, cancellationToken);
