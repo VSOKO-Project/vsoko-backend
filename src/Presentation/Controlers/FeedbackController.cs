@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Exceptions;
 using Application.Common.Results;
 using Application.Features.FeedbackFeatures.Command;
 using Application.Features.FeedbackFeatures.Query;
@@ -85,7 +86,7 @@ public class FeedbackController : BaseApiController
     {
         if (id != request.Id)
         {
-            throw new ArgumentException("Id mismatch");
+            throw new ValidationException("Id в адресе и в теле запроса не совпадают");
         }
         var result = await _sender.Send(request);
 

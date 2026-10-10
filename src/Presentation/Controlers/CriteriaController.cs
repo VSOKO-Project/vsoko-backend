@@ -1,4 +1,5 @@
 using Application.Common.DTOs;
+using Application.Common.Exceptions;
 using Application.Features.CriteriaFeatures.Command;
 using Application.Features.CriteriaFeatures.Query;
 using MediatR;
@@ -47,7 +48,7 @@ public class CriteriaController : BaseApiController
     {
         if (id != request.Id)
         {
-            throw new ArgumentException("Id mismatch");
+            throw new ValidationException("Id в адресе и в теле запроса не совпадают");
         }
         var result = await _sender.Send(request);
 

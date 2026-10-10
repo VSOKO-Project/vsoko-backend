@@ -1,8 +1,10 @@
 using Application.Common.DTOs;
+using Application.Common.Exceptions;
 using Application.Common.Periods;
 using Application.Common.Mappings;
 using Application.Common.Results;
 using Application.Interfaces.DataManager.Repositories;
+using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.DataManager.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -77,7 +79,7 @@ public class DisciplineRepository : IDisciplineRepository
     {
         var discipline = await _dbContext.Disciplines
             .FirstOrDefaultAsync(d => d.Id == id, cancellationToken)
-            ?? throw new KeyNotFoundException($"Discipline with id '{id}' not found.");
+            ?? throw new NotFoundException(nameof(Discipline), id);
 
         return new DisciplineDto
         {

@@ -1,8 +1,10 @@
 using Application.Common.DTOs;
+using Application.Common.Exceptions;
 using Application.Common.Periods;
 using Application.Common.Mappings;
 using Application.Common.Results;
 using Application.Interfaces.DataManager.Repositories;
+using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.DataManager.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -77,7 +79,7 @@ public class TeacherRepository : ITeacherRepository
     {
         var teacher = await _dbContext.Teachers
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
-            ?? throw new KeyNotFoundException($"Teacher with id '{id}' not found.");
+            ?? throw new NotFoundException(nameof(Teacher), id);
 
         return new TeacherDto
         {
