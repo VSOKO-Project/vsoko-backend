@@ -80,6 +80,97 @@ public class ImportTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Export_RoundTripsAndFiltersByTeacher()
+    {
+        var admin = await factory.AdminAsync();
+        var group = ApiFactory.Unique("Э-");
+        var number = ApiFactory.Unique("x");
+        var teacher = $"Выгрузова Елена {ApiFactory.Unique("В")}";
+        var file = File(
+            [[group, "Выгрузов", "Пётр", "", number]],
+            [[teacher, "Физика", group], ["Сидоров Дмитрий Сергеевич", "Физика", group]]);
+        await admin.PostAsync("/api/Import/apply", Form(file, 2042, Term.Autumn));
+
+        var teachers = await (await admin.GetAsync("/api/Import/teachers?startYear=2042&term=Autumn")).DataAsync<List<TeacherDto>>();
+        Assert.Equal(2, teachers.Count);
+
+        // Выгрузка повторно загружается без ошибок и ничего не создаёт.
+        var export = await admin.GetAsync("/api/Import/export?startYear=2042&term=Autumn");
+        Assert.Equal(HttpStatusCode.OK, export.StatusCode);
+        var exported = await export.Content.ReadAsByteArrayAsync();
+        var repeat = await (await admin.PostAsync("/api/Import/preview", Form(exported, 2042, Term.Autumn))).DataAsync<ImportReportDto>();
+        Assert.Empty(repeat.Errors);
+        Assert.Equal((0, 1, 0, 2), (repeat.Summary.Students.Create, repeat.Summary.Students.Existing,
+            repeat.Summary.Workloads.Create, repeat.Summary.Workloads.Existing));
+
+        var teacherId = teachers.Single(t => t.FullName == teacher).Id;
+        var filtered = await admin.GetAsync($"/api/Import/export?startYear=2042&term=Autumn&teacherIds={teacherId}");
+        var sheets = Roster.Read(await filtered.Content.ReadAsStreamAsync());
+        var workload = Assert.Single(sheets.Single(s => s.Name == ImportFormat.WorkloadsSheet).Rows);
+        Assert.Equal([teacher, "Физика", group], workload.Values);
+        Assert.Single(sheets.Single(s => s.Name == ImportFormat.StudentsSheet).Rows);
+
+        var missing = await admin.GetAsync("/api/Import/export?startYear=2043&term=Autumn");
+        await missing.ProblemAsync(HttpStatusCode.NotFound);
+        Assert.Empty(await (await admin.GetAsync("/api/Import/teachers?startYear=2043&term=Autumn")).DataAsync<List<TeacherDto>>());
+    }
+
+    [Fact]
+    public async Task ExportedFile_WithRemovedRows_DeletesWorkloadWithoutFeedback()
+    {
+        var admin = await factory.AdminAsync();
+        var group = ApiFactory.Unique("У-");
+        var number = ApiFactory.Unique("u");
+        var kept = $"Оставлена Ольга {ApiFactory.Unique("О")}";
+        var removed = $"Удалёнов Устин {ApiFactory.Unique("У")}";
+        var reviewed = $"Отзывова Ольга {ApiFactory.Unique("О")}";
+        await admin.PostAsync("/api/Import/apply", Form(
+            File([[group, "Удалёнов", "Пётр", "", number]],
+                [[kept, "Физика", group], [removed, "Физика", group], [reviewed, "Физика", group]]),
+            2044, Term.Autumn));
+
+        await factory.WithDbAsync(async db =>
+        {
+            var studentId = await db.Users.Where(u => u.UserName == number).Select(u => u.Id).SingleAsync();
+            var workloadId = await db.Workloads
+                .Where(w => w.TeacherRef!.Surname == "Отзывова" && w.GroupRef!.Name == group)
+                .Select(w => w.Id)
+                .SingleAsync();
+            db.Feedbacks.Add(new Domain.Entities.Feedback { StudentId = studentId, WorkloadId = workloadId, Comment = "Хорошо" });
+            await db.SaveChangesAsync();
+        });
+
+        // В выгрузке оставляем одну строку нагрузки, служебный лист переносим как есть.
+        var exported = Roster.Read(await (await admin.GetAsync("/api/Import/export?startYear=2044&term=Autumn")).Content.ReadAsStreamAsync());
+        var scope = exported.Single(s => s.Name == ImportFormat.ScopeSheet);
+        var edited = Roster.Write([
+            new SpreadsheetSheet(ImportFormat.WorkloadsSheet, ImportFormat.WorkloadColumns, [[kept, "Физика", group]]),
+            new SpreadsheetSheet(scope.Name, scope.Headers, scope.Rows.Select(r => r.Values).ToList(), Hidden: true),
+        ]);
+
+        var preview = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2044, Term.Autumn))).DataAsync<ImportReportDto>();
+        Assert.Empty(preview.Errors);
+        Assert.Equal(1, preview.Summary.Workloads.Delete);
+        Assert.Equal(new ImportWorkloadDto(removed, "Физика", group), Assert.Single(preview.WorkloadsToDelete));
+        Assert.Contains(preview.Warnings, w => w.Message.Contains(reviewed));
+
+        // В другой семестр тот же файл только добавляет.
+        var otherPeriod = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2045, Term.Spring))).DataAsync<ImportReportDto>();
+        Assert.Equal(0, otherPeriod.Summary.Workloads.Delete);
+
+        var applied = await (await admin.PostAsync("/api/Import/apply", Form(edited, 2044, Term.Autumn))).DataAsync<ImportReportDto>();
+        Assert.Equal(1, applied.Summary.Workloads.Delete);
+
+        var surnames = await factory.WithDbAsync(db => db.Workloads
+            .Where(w => w.GroupRef!.Name == group)
+            .Select(w => w.TeacherRef!.Surname)
+            .OrderBy(s => s)
+            .ToListAsync());
+        Assert.Equal(["Оставлена", "Отзывова"], surnames);
+        Assert.True(await factory.WithDbAsync(db => db.Feedbacks.AnyAsync(f => f.WorkloadRef!.GroupRef!.Name == group)));
+    }
+
+    [Fact]
     public async Task Apply_WithErrors_Is400WithReport_AndWritesNothing()
     {
         var admin = await factory.AdminAsync();

@@ -1,6 +1,7 @@
 using Application.Common.DTOs;
 using Application.Common.Results;
 using Application.Features.DisciplineFeatures.Query;
+using Application.Features.DisciplineFeatures.Command;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -50,4 +51,48 @@ public class DisciplinesController : BaseApiController
             Data = result
         };
     }
+
+    /// <summary>Исправляет название. Если такое название уже есть, отвечает 400: записи нужно объединить.</summary>
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiSuccessResult<DisciplineDto>), Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    public async Task<ApiSuccessResult<DisciplineDto>> Rename(string id, RenameDisciplineForm form, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new RenameDisciplineCommand(id, form.Name), cancellationToken);
+
+        return new ApiSuccessResult<DisciplineDto>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
+    }
+
+    /// <summary>Переносит нагрузку и отзывы дисциплины {id} на targetId и удаляет {id}.</summary>
+    [HttpPost("{id}/merge")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiSuccessResult<DisciplineDto>), Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    public async Task<ApiSuccessResult<DisciplineDto>> Merge(string id, DisciplineMergeForm form, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new MergeDisciplinesCommand(id, form.TargetId), cancellationToken);
+
+        return new ApiSuccessResult<DisciplineDto>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
+    }
+
+    public record RenameDisciplineForm(string Name);
+
+    public record DisciplineMergeForm(string TargetId);
 }

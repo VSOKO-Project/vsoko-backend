@@ -90,7 +90,7 @@ public class PeriodsAndKeysTests
         Assert.Equal("criteria-list", CacheKeys.Criteria.ListTag);
 
         Assert.Equal("discipline-list", CacheKeys.Discipline.ListTag);
-        Assert.Equal("discipline:list:p2:s5:qx", CacheKeys.Discipline.GetPaged(2, 5, "x"));
+        Assert.Equal("discipline:list:p2:s5:perp1:y2026:qx", CacheKeys.Discipline.GetPaged(2, 5, "x", period));
         Assert.Equal("discipline:rating:p2:s5:perp1:y2026:qx", CacheKeys.Discipline.GetRating(2, 5, "x", period));
         Assert.Equal("discipline:summary:d1:perp1:y2026", CacheKeys.Discipline.GetSummary("d1", period));
 
@@ -101,7 +101,7 @@ public class PeriodsAndKeysTests
         Assert.Equal("feedback:list:p1:s10:student:s1:d:t:w", CacheKeys.Feedback.GetPagedForStudent(1, 10, "s1"));
 
         Assert.Equal("teacher-list", CacheKeys.Teacher.ListTag);
-        Assert.Equal("teacher:list:p1:s10:q", CacheKeys.Teacher.GetPaged(1, 10, ""));
+        Assert.Equal("teacher:list:p1:s10:per:y:q", CacheKeys.Teacher.GetPaged(1, 10, "", PeriodFilter.All));
         Assert.Equal("teacher:rating:p1:s10:perp1:y2026:qx", CacheKeys.Teacher.GetRating(1, 10, "x", period));
         Assert.Equal("teacher:summary:t1:perp1:y2026", CacheKeys.Teacher.GetSummary("t1", period));
     }

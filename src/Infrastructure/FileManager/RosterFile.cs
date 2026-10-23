@@ -92,6 +92,10 @@ public class RosterFile : IRosterFileReader, IRosterFileWriter
 
             worksheet.SheetView.FreezeRows(1);
             worksheet.Columns(1, columnCount).AdjustToContents();
+
+            // Служебные листы не показываются и не открываются из интерфейса Excel.
+            if (sheet.Hidden)
+                worksheet.Visibility = XLWorksheetVisibility.VeryHidden;
         }
 
         if (workbook.Worksheets.Count == 0)

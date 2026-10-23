@@ -1,3 +1,4 @@
+using Application.Common.Periods;
 using Application.Common.Caching;
 using Application.Common.CQRS;
 using Application.Common.DTOs;
@@ -14,6 +15,10 @@ public class GetAllTeachersRequest : IRequest<PagedResultDto<TeacherDto>>, IQuer
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     public string? Query { get; init; }
+
+    /// <summary>Только с нагрузкой в семестре или учебном году; без них — все.</summary>
+    public string? PeriodId { get; init; }
+    public int? StartYear { get; init; }
 }
 
 public class GetAllTeachersRequestValidator : AbstractValidator<GetAllTeachersRequest>
@@ -42,9 +47,10 @@ public class GetAllTeachersRequestHandler
         CancellationToken cancellationToken
     )
     {
-        var key = CacheKeys.Teacher.GetPaged(request.Page, request.PageSize, request.Query ?? "");
+        var period = new PeriodFilter(request.PeriodId, request.StartYear);
+        var key = CacheKeys.Teacher.GetPaged(request.Page, request.PageSize, request.Query ?? "", period);
         var tag = CacheKeys.Teacher.ListTag;
 
-        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _teacherRepository.GetAllAsync(request.Page, request.Query ?? "", request.PageSize, cancellationToken), [tag], cancellationToken))!;
+        return (await _cacheService.GetOrCreateAsync(key, async (ct) => await _teacherRepository.GetAllAsync(request.Page, request.Query ?? "", request.PageSize, period, cancellationToken), [tag], cancellationToken))!;
     }
 }

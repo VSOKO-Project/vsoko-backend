@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Application.Common.DTOs;
 using Application.Common.Periods;
 using Application.Interfaces.FileManager;
+using Domain.Enums;
 
 namespace Application.Features.ImportFeatures;
 
@@ -58,8 +59,21 @@ public static partial class ImportPlanBuilder
         if (studentsSheet is not null)
             BuildStudents(studentsSheet, refs, plan, sheetGroups, neededGroups, referencedExistingGroups);
 
+        HashSet<WorkloadKey>? keptWorkloads = null;
         if (workloadsSheet is not null)
-            BuildWorkloads(workloadsSheet, refs, plan, sheetGroups, neededGroups, referencedExistingGroups);
+            keptWorkloads = BuildWorkloads(workloadsSheet, refs, plan, sheetGroups, neededGroups, referencedExistingGroups);
+
+        var scope = ReadScope(sheets);
+        if (scope is not null && scope.Period != period)
+        {
+            plan.Warnings.Add(new("", 0,
+                $"Файл выгружен из семестра «{PeriodCalculator.Title(scope.Period.StartYear, scope.Period.Term)}»: " +
+                "в выбранный семестр нагрузка только добавится, ничего не удалится"));
+        }
+        else if (scope is not null && keptWorkloads is not null && !plan.HasErrors)
+        {
+            PlanDeletions(scope, keptWorkloads, refs, plan);
+        }
 
         plan.GroupsToCreate.AddRange(neededGroups.Values.Where(g => !refs.GroupIds.ContainsKey(g)));
         plan.ExistingGroups = referencedExistingGroups.Count;
@@ -161,7 +175,89 @@ public static partial class ImportPlanBuilder
         }
     }
 
-    private static void BuildWorkloads(
+    /// <summary>
+    /// Нагрузка среза, которой нет в файле, удаляется. Нагрузку с отзывами не трогаем:
+    /// удаление унесло бы отзывы студентов.
+    /// </summary>
+    private static void PlanDeletions(
+        ExportScope scope,
+        HashSet<WorkloadKey> keptWorkloads,
+        ImportReferenceData refs,
+        ImportPlan plan
+    )
+    {
+        var teacherNames = refs.TeacherIds.ToDictionary(t => t.Value, t => t.Key);
+        var disciplineNames = refs.DisciplineIds.ToDictionary(d => d.Value, d => d.Key);
+        var groupNames = refs.GroupIds.ToDictionary(g => g.Value, g => g.Key);
+
+        // Запись, которую не найти по имени (например, второй препод с тем же ФИО), файл описать не может: её не удаляем.
+        var removed = refs.Workloads
+            .Where(w => scope.TeacherIds is null || scope.TeacherIds.Contains(w.Key.TeacherId))
+            .Where(w => !keptWorkloads.Contains(w.Key))
+            .Where(w => teacherNames.ContainsKey(w.Key.TeacherId)
+                && disciplineNames.ContainsKey(w.Key.DisciplineId)
+                && groupNames.ContainsKey(w.Key.GroupId))
+            .Select(w => (
+                w.Value,
+                Deletion: new PlannedWorkloadDeletion(
+                    w.Value.Id,
+                    teacherNames[w.Key.TeacherId],
+                    disciplineNames[w.Key.DisciplineId],
+                    groupNames[w.Key.GroupId])))
+            .OrderBy(w => w.Deletion.TeacherName)
+            .ThenBy(w => w.Deletion.DisciplineName)
+            .ThenBy(w => w.Deletion.GroupName);
+
+        foreach (var (existing, deletion) in removed)
+        {
+            if (existing.FeedbackCount > 0)
+            {
+                plan.Warnings.Add(new(ImportFormat.WorkloadsSheet, 0,
+                    $"Нагрузка «{deletion.TeacherName} — {deletion.DisciplineName} — {deletion.GroupName}» не удалится: " +
+                    $"по ней уже есть отзывы ({existing.FeedbackCount})"));
+                continue;
+            }
+
+            plan.WorkloadsToDelete.Add(deletion);
+        }
+    }
+
+    /// <summary>Читает скрытый лист выгрузки. Если его нет или он испорчен — null: импорт только добавляет.</summary>
+    private static ExportScope? ReadScope(IReadOnlyList<RosterSheet> sheets)
+    {
+        var sheet = FindSheet(sheets, ImportFormat.ScopeSheet);
+        if (sheet is null || sheet.Headers.Count < 2)
+            return null;
+
+        PeriodKey? period = null;
+        var teacherIds = new HashSet<string>();
+
+        foreach (var row in sheet.Rows.Where(r => r.Values.Count >= 2))
+        {
+            var (key, value) = (row.Values[0].Trim(), row.Values[1].Trim());
+
+            if (key == ImportFormat.ScopePeriod)
+                period = ParsePeriod(value);
+            else if (key == ImportFormat.ScopeTeacher && value.Length > 0)
+                teacherIds.Add(value);
+        }
+
+        return period is { } p ? new ExportScope(p, teacherIds.Count > 0 ? teacherIds : null) : null;
+    }
+
+    private static PeriodKey? ParsePeriod(string value)
+    {
+        var parts = value.Split(':');
+        return parts.Length == 2
+            && int.TryParse(parts[0], out var startYear)
+            && Enum.TryParse<Term>(parts[1], out var term)
+            && Enum.IsDefined(term)
+                ? new PeriodKey(startYear, term)
+                : null;
+    }
+
+    /// <summary>Возвращает существующую нагрузку, которая осталась в файле, или null, если лист не разобран.</summary>
+    private static HashSet<WorkloadKey>? BuildWorkloads(
         RosterSheet sheet,
         ImportReferenceData refs,
         ImportPlan plan,
@@ -178,8 +274,9 @@ public static partial class ImportPlanBuilder
         );
 
         if (columns is null || !CheckRowLimit(sheet, plan))
-            return;
+            return null;
 
+        var kept = new HashSet<WorkloadKey>();
         var seen = new Dictionary<(string, string, string), int>();
         var teachersToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var existingTeachers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -244,19 +341,26 @@ public static partial class ImportPlanBuilder
                 referencedExistingGroups.Add(group);
             neededGroups.TryAdd(group, group);
 
-            var exists = refs.TeacherIds.TryGetValue(teacher.Key, out var teacherId)
+            var existingKey = refs.TeacherIds.TryGetValue(teacher.Key, out var teacherId)
                 && refs.DisciplineIds.TryGetValue(discipline, out var disciplineId)
                 && refs.GroupIds.TryGetValue(group, out var groupId)
-                && refs.Workloads.Contains(new WorkloadKey(teacherId, disciplineId, groupId));
+                    ? new WorkloadKey(teacherId, disciplineId, groupId)
+                    : (WorkloadKey?)null;
 
-            if (exists)
+            if (existingKey is { } k && refs.Workloads.ContainsKey(k))
+            {
                 plan.ExistingWorkloads++;
+                kept.Add(k);
+            }
             else
+            {
                 plan.WorkloadsToCreate.Add(new PlannedWorkload(teacher.Key, discipline, group));
+            }
         }
 
         plan.ExistingTeachers = existingTeachers.Count;
         plan.ExistingDisciplines = existingDisciplines.Count;
+        return kept;
     }
 
     public static string TeacherKey(string surname, string name, string patronymic) =>
