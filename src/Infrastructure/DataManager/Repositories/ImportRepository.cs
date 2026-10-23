@@ -31,10 +31,7 @@ public class ImportRepository : IImportRepository
 
     public async Task<ImportReferenceData> LoadReferenceDataAsync(PeriodKey period, CancellationToken cancellationToken)
     {
-        var periodId = await _dbContext.AcademicPeriods
-            .Where(p => p.StartYear == period.StartYear && p.Term == period.Term)
-            .Select(p => p.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+        var periodId = await FindPeriodIdAsync(period, cancellationToken);
 
         var refs = new ImportReferenceData { PeriodId = periodId };
 
@@ -215,6 +212,63 @@ public class ImportRepository : IImportRepository
             })
             .ToList();
     }
+
+    public async Task<PeriodExport?> GetPeriodExportAsync(
+        PeriodKey period,
+        IReadOnlyCollection<string>? teacherIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var periodId = await FindPeriodIdAsync(period, cancellationToken);
+        if (periodId is null)
+            return null;
+
+        var query = _dbContext.Workloads.Where(w => w.PeriodId == periodId);
+
+        if (teacherIds is not null)
+            query = query.Where(w => teacherIds.Contains(w.TeacherId));
+
+        var workloads = await query
+            .Select(w => new
+            {
+                w.GroupId,
+                w.TeacherRef!.Surname,
+                w.TeacherRef.Name,
+                w.TeacherRef.Patronymic,
+                Discipline = w.DisciplineRef!.Name,
+                Group = w.GroupRef!.Name,
+            })
+            .ToListAsync(cancellationToken);
+
+        var groupIds = workloads.Select(w => w.GroupId).Distinct().ToList();
+
+        var students = await _dbContext.Users
+            .Where(u => u.StudentRef != null && groupIds.Contains(u.StudentRef.GroupId))
+            .Select(u => new ExportStudentRow(u.StudentRef!.GroupRef!.Name, u.Surname, u.Name, u.Patronymic, u.UserName!))
+            .ToListAsync(cancellationToken);
+
+        return new PeriodExport(
+            workloads
+                .Select(w => new ExportWorkloadRow($"{w.Surname} {w.Name} {w.Patronymic}".Trim(), w.Discipline, w.Group))
+                .ToList(),
+            students
+        );
+    }
+
+    public async Task<List<TeacherDto>> GetPeriodTeachersAsync(PeriodKey period, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Teachers
+            .Where(t => t.WorkloadsRefs!.Any(w => w.PeriodRef!.StartYear == period.StartYear && w.PeriodRef.Term == period.Term))
+            .OrderBy(t => t.Surname).ThenBy(t => t.Name).ThenBy(t => t.Patronymic)
+            .Select(t => new TeacherDto { Id = t.Id, Surname = t.Surname, Name = t.Name, Patronymic = t.Patronymic })
+            .ToListAsync(cancellationToken);
+    }
+
+    private Task<string?> FindPeriodIdAsync(PeriodKey period, CancellationToken cancellationToken) =>
+        _dbContext.AcademicPeriods
+            .Where(p => p.StartYear == period.StartYear && p.Term == period.Term)
+            .Select(p => p.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
     public async Task<List<StudentGroupDto>> GetGroupsAsync(CancellationToken cancellationToken)
     {

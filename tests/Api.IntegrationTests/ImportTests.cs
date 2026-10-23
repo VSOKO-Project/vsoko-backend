@@ -80,6 +80,42 @@ public class ImportTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Export_RoundTripsAndFiltersByTeacher()
+    {
+        var admin = await factory.AdminAsync();
+        var group = ApiFactory.Unique("Э-");
+        var number = ApiFactory.Unique("x");
+        var teacher = $"Выгрузова Елена {ApiFactory.Unique("В")}";
+        var file = File(
+            [[group, "Выгрузов", "Пётр", "", number]],
+            [[teacher, "Физика", group], ["Сидоров Дмитрий Сергеевич", "Физика", group]]);
+        await admin.PostAsync("/api/Import/apply", Form(file, 2042, Term.Autumn));
+
+        var teachers = await (await admin.GetAsync("/api/Import/teachers?startYear=2042&term=Autumn")).DataAsync<List<TeacherDto>>();
+        Assert.Equal(2, teachers.Count);
+
+        // Выгрузка повторно загружается без ошибок и ничего не создаёт.
+        var export = await admin.GetAsync("/api/Import/export?startYear=2042&term=Autumn");
+        Assert.Equal(HttpStatusCode.OK, export.StatusCode);
+        var exported = await export.Content.ReadAsByteArrayAsync();
+        var repeat = await (await admin.PostAsync("/api/Import/preview", Form(exported, 2042, Term.Autumn))).DataAsync<ImportReportDto>();
+        Assert.Empty(repeat.Errors);
+        Assert.Equal((0, 1, 0, 2), (repeat.Summary.Students.Create, repeat.Summary.Students.Existing,
+            repeat.Summary.Workloads.Create, repeat.Summary.Workloads.Existing));
+
+        var teacherId = teachers.Single(t => t.FullName == teacher).Id;
+        var filtered = await admin.GetAsync($"/api/Import/export?startYear=2042&term=Autumn&teacherIds={teacherId}");
+        var sheets = Roster.Read(await filtered.Content.ReadAsStreamAsync());
+        var workload = Assert.Single(sheets.Single(s => s.Name == ImportFormat.WorkloadsSheet).Rows);
+        Assert.Equal([teacher, "Физика", group], workload.Values);
+        Assert.Single(sheets.Single(s => s.Name == ImportFormat.StudentsSheet).Rows);
+
+        var missing = await admin.GetAsync("/api/Import/export?startYear=2043&term=Autumn");
+        await missing.ProblemAsync(HttpStatusCode.NotFound);
+        Assert.Empty(await (await admin.GetAsync("/api/Import/teachers?startYear=2043&term=Autumn")).DataAsync<List<TeacherDto>>());
+    }
+
+    [Fact]
     public async Task Apply_WithErrors_Is400WithReport_AndWritesNothing()
     {
         var admin = await factory.AdminAsync();

@@ -142,6 +142,47 @@ public class ImportHandlerTests
     }
 
     [Fact]
+    public async Task Export_SortsRows_AndPassesTeacherFilter()
+    {
+        string[] ids = ["t1"];
+        _repo.GetPeriodExportAsync(Period, ids, _ct).Returns(new PeriodExport(
+            [new("Яковлев Яков Яковлевич", "Физика", "ИВТ-21"), new("Андреев Андрей Андреевич", "Физика", "ИВТ-22")],
+            [new("ИВТ-22", "Борисов", "Борис", null, "2"), new("ИВТ-21", "Петров", "Пётр", "Петрович", "1")]));
+        IReadOnlyList<SpreadsheetSheet>? sheets = null;
+        _writer.Write(Arg.Do<IReadOnlyList<SpreadsheetSheet>>(s => sheets = s)).Returns([7]);
+
+        var file = await new ExportPeriodQueryHandler(_repo, _writer).Handle(new ExportPeriodQuery(2026, Term.Autumn, ids), _ct);
+
+        Assert.Equal([7], file);
+        Assert.Equal([ImportFormat.StudentsSheet, ImportFormat.WorkloadsSheet], sheets!.Select(s => s.Name));
+        Assert.Equal(
+            [["ИВТ-21", "Петров", "Пётр", "Петрович", "1"], ["ИВТ-22", "Борисов", "Борис", "", "2"]],
+            sheets[0].Rows);
+        Assert.Equal(
+            [["Андреев Андрей Андреевич", "Физика", "ИВТ-22"], ["Яковлев Яков Яковлевич", "Физика", "ИВТ-21"]],
+            sheets[1].Rows);
+    }
+
+    [Fact]
+    public async Task Export_MissingPeriod_IsNotFound()
+    {
+        _repo.GetPeriodExportAsync(Period, null, _ct).Returns((PeriodExport?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            new ExportPeriodQueryHandler(_repo, _writer).Handle(new ExportPeriodQuery(2026, Term.Autumn, []), _ct));
+    }
+
+    [Fact]
+    public async Task PeriodTeachers_AreLoadedForPeriod()
+    {
+        _repo.GetPeriodTeachersAsync(Period, _ct).Returns([new TeacherDto { Id = "t1" }]);
+
+        var teachers = await new GetPeriodTeachersQueryHandler(_repo).Handle(new GetPeriodTeachersQuery(2026, Term.Autumn), _ct);
+
+        Assert.Equal("t1", Assert.Single(teachers).Id);
+    }
+
+    [Fact]
     public void TemporaryPassword_IsDerivedFromLogin()
     {
         Assert.Equal("Vsoko210001", ImportFormat.TemporaryPassword("210001"));

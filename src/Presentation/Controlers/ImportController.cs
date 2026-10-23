@@ -106,6 +106,47 @@ public class ImportController : BaseApiController
         return File(file, XlsxContentType, $"vsoko-credentials-{DateTime.Now:dd-MM-yyyy}.xlsx");
     }
 
+    /// <summary>
+    /// Нагрузка семестра в формате файла импорта. Без teacherIds — вся нагрузка семестра.
+    /// Если семестра нет, отвечает 404.
+    /// </summary>
+    [HttpGet("export")]
+    [ProducesResponseType(typeof(FileContentResult), Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), Status404NotFound)]
+    public async Task<FileContentResult> Export(
+        [FromQuery] int startYear,
+        [FromQuery] Term term,
+        [FromQuery] List<string>? teacherIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var file = await _sender.Send(new ExportPeriodQuery(startYear, term, teacherIds), cancellationToken);
+
+        return File(file, XlsxContentType, $"vsoko-{startYear}-{term.ToString().ToLowerInvariant()}.xlsx");
+    }
+
+    [HttpGet("teachers")]
+    [ProducesResponseType(typeof(ApiSuccessResult<List<TeacherDto>>), Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
+    public async Task<ApiSuccessResult<List<TeacherDto>>> GetTeachers(
+        [FromQuery] int startYear,
+        [FromQuery] Term term,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await _sender.Send(new GetPeriodTeachersQuery(startYear, term), cancellationToken);
+
+        return new ApiSuccessResult<List<TeacherDto>>
+        {
+            Code = Status200OK,
+            Message = "Success",
+            Data = result
+        };
+    }
+
     [HttpGet("groups")]
     [ProducesResponseType(typeof(ApiSuccessResult<List<StudentGroupDto>>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
