@@ -155,7 +155,7 @@ public class ImportHandlerTests
 
         Assert.Equal([7], file);
         Assert.Equal([ImportFormat.StudentsSheet, ImportFormat.WorkloadsSheet, ImportFormat.ScopeSheet], sheets!.Select(s => s.Name));
-        Assert.True(sheets[2].Hidden);
+        Assert.True(sheets![2].Hidden);
         Assert.Equal([[ImportFormat.ScopePeriod, "2026:Autumn"], [ImportFormat.ScopeTeacher, "t1"]], sheets[2].Rows);
         Assert.Equal(
             [["ИВТ-21", "Петров", "Пётр", "Петрович", "1"], ["ИВТ-22", "Борисов", "Борис", "", "2"]],

@@ -94,10 +94,11 @@ public class TeacherRepository : ITeacherRepository
         int page,
         string query,
         int pageSize,
+        PeriodFilter period,
         CancellationToken cancellationToken
     )
     {
-        var baseQuery = _dbContext.Teachers.AsQueryable();
+        var baseQuery = _dbContext.Teachers.WhereHasWorkloadIn(period);
 
         if (!string.IsNullOrWhiteSpace(query))
         {
@@ -128,4 +129,55 @@ public class TeacherRepository : ITeacherRepository
             TotalCount = totalCount,
         };
     }
+
+    public async Task<TeacherDto> RenameAsync(
+        string id,
+        string surname,
+        string name,
+        string patronymic,
+        CancellationToken cancellationToken
+    )
+    {
+        var teacher = await _dbContext.Teachers.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
+            ?? throw new NotFoundException(nameof(Teacher), id);
+
+        // Импорт сопоставляет ФИО без учёта регистра, поэтому и здесь дублем считается любое совпадение.
+        var (s, n, p) = (surname.ToLower(), name.ToLower(), patronymic.ToLower());
+        var taken = await _dbContext.Teachers.AnyAsync(t =>
+            t.Id != id && t.Surname.ToLower() == s && t.Name.ToLower() == n && t.Patronymic.ToLower() == p,
+            cancellationToken);
+        if (taken)
+            throw new ValidationException($"Преподаватель «{surname} {name} {patronymic}» уже есть. Чтобы свести записи, объедините их");
+
+        teacher.Surname = surname;
+        teacher.Name = name;
+        teacher.Patronymic = patronymic;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(teacher);
+    }
+
+    public async Task<TeacherDto> MergeAsync(string sourceId, string targetId, CancellationToken cancellationToken)
+    {
+        var source = await _dbContext.Teachers.FirstOrDefaultAsync(t => t.Id == sourceId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Teacher), sourceId);
+        var target = await _dbContext.Teachers.FirstOrDefaultAsync(t => t.Id == targetId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Teacher), targetId);
+
+        await WorkloadMerger.MergeAsync(
+            _dbContext,
+            w => w.TeacherId == sourceId,
+            w => w.TeacherId == targetId,
+            w => (w.DisciplineId, w.GroupId, w.PeriodId),
+            w => w.TeacherId = targetId,
+            cancellationToken);
+
+        source.IsDeleted = true;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(target);
+    }
+
+    private static TeacherDto ToDto(Teacher teacher) =>
+        new() { Id = teacher.Id, Surname = teacher.Surname, Name = teacher.Name, Patronymic = teacher.Patronymic };
 }

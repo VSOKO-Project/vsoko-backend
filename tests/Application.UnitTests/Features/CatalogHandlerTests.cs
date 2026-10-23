@@ -35,13 +35,13 @@ public class CatalogHandlerTests
     public async Task Teachers_GetAll(string? query, string expectedQuery)
     {
         var page = new PagedResultDto<TeacherDto>();
-        _teachers.GetAllAsync(2, expectedQuery, 5, Arg.Any<CancellationToken>()).Returns(page);
+        _teachers.GetAllAsync(2, expectedQuery, 5, PeriodFilter.All, Arg.Any<CancellationToken>()).Returns(page);
 
         var result = await new GetAllTeachersRequestHandler(_teachers, _cache)
             .Handle(new GetAllTeachersRequest { Page = 2, PageSize = 5, Query = query }, _ct);
 
         Assert.Same(page, result);
-        Assert.Equal((CacheKeys.Teacher.GetPaged(2, 5, expectedQuery), CacheKeys.Teacher.ListTag), Assert.Single(_cache.Requests));
+        Assert.Equal((CacheKeys.Teacher.GetPaged(2, 5, expectedQuery, PeriodFilter.All), CacheKeys.Teacher.ListTag), Assert.Single(_cache.Requests));
     }
 
     [Fact]
@@ -63,13 +63,13 @@ public class CatalogHandlerTests
     public async Task Disciplines_GetAll(string? query, string expectedQuery)
     {
         var page = new PagedResultDto<DisciplineDto>();
-        _disciplines.GetAllAsync(1, expectedQuery, 10, Arg.Any<CancellationToken>()).Returns(page);
+        _disciplines.GetAllAsync(1, expectedQuery, 10, Period, Arg.Any<CancellationToken>()).Returns(page);
 
         var result = await new GetAllDisciplinesRequestHandler(_disciplines, _cache)
-            .Handle(new GetAllDisciplinesRequest { Query = query }, _ct);
+            .Handle(new GetAllDisciplinesRequest { Query = query, PeriodId = "p1", StartYear = 2026 }, _ct);
 
         Assert.Same(page, result);
-        Assert.Equal((CacheKeys.Discipline.GetPaged(1, 10, expectedQuery), CacheKeys.Discipline.ListTag), Assert.Single(_cache.Requests));
+        Assert.Equal((CacheKeys.Discipline.GetPaged(1, 10, expectedQuery, Period), CacheKeys.Discipline.ListTag), Assert.Single(_cache.Requests));
     }
 
     [Fact]
