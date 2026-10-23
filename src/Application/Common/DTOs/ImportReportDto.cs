@@ -9,6 +9,7 @@ public class ImportReportDto
     public ImportSummaryDto Summary { get; set; } = null!;
     public List<ImportIssueDto> Errors { get; set; } = [];
     public List<ImportIssueDto> Warnings { get; set; } = [];
+    public List<ImportWorkloadDto> WorkloadsToDelete { get; set; } = [];
 
     // Заполняются только в ответе apply.
     public List<string>? CreatedGroupIds { get; set; }
@@ -37,7 +38,10 @@ public class ImportCountDto
 {
     public int Create { get; set; }
     public int Existing { get; set; }
+    public int Delete { get; set; }
 }
+
+public record ImportWorkloadDto(string Teacher, string Discipline, string Group);
 
 public record ImportIssueDto(string Sheet, int Row, string Message);
 

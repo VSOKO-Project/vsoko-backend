@@ -3,7 +3,8 @@ namespace Application.Interfaces.FileManager;
 public record SpreadsheetSheet(
     string Name,
     IReadOnlyList<string> Headers,
-    IReadOnlyList<IReadOnlyList<string>> Rows
+    IReadOnlyList<IReadOnlyList<string>> Rows,
+    bool Hidden = false
 );
 
 public interface IRosterFileWriter

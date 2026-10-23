@@ -1,3 +1,4 @@
+using Application.Common.DTOs;
 using Application.Common.Periods;
 using Application.Features.ImportFeatures;
 using Application.Interfaces.FileManager;
@@ -98,6 +99,120 @@ public class ImportPlanBuilderTests
         Assert.Empty(plan.GroupsToCreate);
     }
 
+    private static RosterSheet Scope(params string[][] rows) =>
+        Sheet(ImportFormat.ScopeSheet, ImportFormat.ScopeColumns, rows);
+
+    // Петрова ведёт физику и химию, у химии есть отзывы; Сидоров ведёт физику.
+    private static ImportReferenceData SyncRefs() =>
+        new()
+        {
+            PeriodId = "p1",
+            GroupIds = { ["ИВТ-21"] = "g1" },
+            TeacherIds = { ["Петрова Анна Ивановна"] = "t1", ["Сидоров Дмитрий Сергеевич"] = "t2" },
+            DisciplineIds = { ["Физика"] = "d1", ["Химия"] = "d2", ["Информатика"] = "d3" },
+            Workloads =
+            {
+                [new WorkloadKey("t1", "d1", "g1")] = new ExistingWorkload("w1", 0),
+                [new WorkloadKey("t1", "d2", "g1")] = new ExistingWorkload("w2", 3),
+                [new WorkloadKey("t2", "d1", "g1")] = new ExistingWorkload("w3", 0),
+                [new WorkloadKey("t2", "d3", "g1")] = new ExistingWorkload("w4", 0),
+            },
+        };
+
+    [Fact]
+    public void ExportedFile_RemovedRowsAreDeleted_ExceptWithFeedback()
+    {
+        var plan = ImportPlanBuilder.Build(
+            [Workloads(["Петрова Анна Ивановна", "Физика", "ИВТ-21"]), Scope([ImportFormat.ScopePeriod, "2026:Spring"])],
+            Period,
+            SyncRefs());
+
+        Assert.Empty(plan.Errors);
+        Assert.Equal(["w4", "w3"], plan.WorkloadsToDelete.Select(w => w.Id));
+        Assert.Equal(
+            new PlannedWorkloadDeletion("w4", "Сидоров Дмитрий Сергеевич", "Информатика", "ИВТ-21"),
+            plan.WorkloadsToDelete[0]);
+        Assert.Contains("отзывы (3)", Assert.Single(plan.Warnings).Message);
+
+        var report = plan.ToReport();
+        Assert.Equal(2, report.Summary.Workloads.Delete);
+        Assert.Equal(new ImportWorkloadDto("Сидоров Дмитрий Сергеевич", "Физика", "ИВТ-21"), report.WorkloadsToDelete[1]);
+    }
+
+    [Fact]
+    public void ExportedFileForTeacher_DeletesOnlyThatTeachersWorkload()
+    {
+        var plan = ImportPlanBuilder.Build(
+            [
+                Workloads(["Сидоров Дмитрий Сергеевич", "Физика", "ИВТ-21"]),
+                Scope([ImportFormat.ScopePeriod, "2026:Spring"], [ImportFormat.ScopeTeacher, "t2"]),
+            ],
+            Period,
+            SyncRefs());
+
+        Assert.Equal(["w4"], plan.WorkloadsToDelete.Select(w => w.Id));
+        Assert.Empty(plan.Warnings);
+    }
+
+    [Fact]
+    public void ExportedFileFromOtherPeriod_OnlyAdds()
+    {
+        var plan = ImportPlanBuilder.Build(
+            [Workloads(["Петрова Анна Ивановна", "Физика", "ИВТ-21"]), Scope([ImportFormat.ScopePeriod, "2025:Autumn"])],
+            Period,
+            SyncRefs());
+
+        Assert.Empty(plan.WorkloadsToDelete);
+        Assert.Contains("2025/26, осенний семестр", Assert.Single(plan.Warnings).Message);
+    }
+
+    [Theory]
+    [InlineData(false, "2026:Spring")]
+    [InlineData(true, "2026:Winter")]
+    [InlineData(true, "весна")]
+    public void FileWithoutValidScope_OnlyAdds(bool withScope, string period)
+    {
+        RosterSheet[] sheets = withScope
+            ? [Workloads(["Петрова Анна Ивановна", "Физика", "ИВТ-21"]), Scope([ImportFormat.ScopePeriod, period])]
+            : [Workloads(["Петрова Анна Ивановна", "Физика", "ИВТ-21"])];
+
+        var plan = ImportPlanBuilder.Build(sheets, Period, SyncRefs());
+
+        Assert.Empty(plan.WorkloadsToDelete);
+        Assert.Empty(plan.Warnings);
+    }
+
+    [Fact]
+    public void ExportedFileWithErrors_PlansNoDeletions()
+    {
+        var plan = ImportPlanBuilder.Build(
+            [Workloads(["Петрова", "Физика", "ИВТ-21"]), Scope([ImportFormat.ScopePeriod, "2026:Spring"])],
+            Period,
+            SyncRefs());
+
+        Assert.NotEmpty(plan.Errors);
+        Assert.Empty(plan.WorkloadsToDelete);
+    }
+
+    [Fact]
+    public void WorkloadOfTeacherWithDuplicateName_IsNotDeleted()
+    {
+        var refs = SyncRefs();
+        // Второй препод с тем же ФИО не попал в справочник имён: файл не может его описать.
+        refs.Workloads[new WorkloadKey("t9", "d1", "g1")] = new ExistingWorkload("w9", 0);
+
+        var plan = ImportPlanBuilder.Build(
+            [
+                Workloads(["Петрова Анна Ивановна", "Физика", "ИВТ-21"], ["Сидоров Дмитрий Сергеевич", "Физика", "ИВТ-21"],
+                    ["Сидоров Дмитрий Сергеевич", "Информатика", "ИВТ-21"]),
+                Scope([ImportFormat.ScopePeriod, "2026:Spring"]),
+            ],
+            Period,
+            refs);
+
+        Assert.Empty(plan.WorkloadsToDelete);
+    }
+
     [Fact]
     public void ExistingWorkload_IsSkipped()
     {
@@ -107,7 +222,7 @@ public class ImportPlanBuilderTests
             GroupIds = { ["ИВТ-21"] = "g1" },
             TeacherIds = { ["Петрова Анна Ивановна"] = "t1" },
             DisciplineIds = { ["Физика"] = "d1" },
-            Workloads = { new WorkloadKey("t1", "d1", "g1") },
+            Workloads = { [new WorkloadKey("t1", "d1", "g1")] = new ExistingWorkload("w1", 0) },
         };
 
         var plan = ImportPlanBuilder.Build(

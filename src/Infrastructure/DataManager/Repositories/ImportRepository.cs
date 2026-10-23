@@ -67,11 +67,11 @@ public class ImportRepository : IImportRepository
         {
             var workloads = await _dbContext.Workloads
                 .Where(w => w.PeriodId == periodId)
-                .Select(w => new { w.TeacherId, w.DisciplineId, w.GroupId })
+                .Select(w => new { w.Id, w.TeacherId, w.DisciplineId, w.GroupId, FeedbackCount = w.FeedbackRefs!.Count })
                 .ToListAsync(cancellationToken);
 
             foreach (var w in workloads)
-                refs.Workloads.Add(new WorkloadKey(w.TeacherId, w.DisciplineId, w.GroupId));
+                refs.Workloads.TryAdd(new WorkloadKey(w.TeacherId, w.DisciplineId, w.GroupId), new ExistingWorkload(w.Id, w.FeedbackCount));
         }
 
         return refs;
@@ -134,6 +134,15 @@ public class ImportRepository : IImportRepository
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (plan.WorkloadsToDelete.Count > 0)
+        {
+            // Отзывы удаляются каскадом, поэтому условие повторяется здесь: отзыв мог появиться после построения плана.
+            var deleteIds = plan.WorkloadsToDelete.Select(w => w.Id).ToList();
+            await _dbContext.Workloads
+                .Where(w => deleteIds.Contains(w.Id) && !w.FeedbackRefs!.Any())
+                .ExecuteDeleteAsync(cancellationToken);
+        }
 
         var studentGroupIds = plan.StudentGroupNames.Select(name => groupIds[name]).Distinct().ToList();
         return new ImportApplyResult(periodId, createdGroupIds, studentGroupIds);

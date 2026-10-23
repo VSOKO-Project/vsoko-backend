@@ -5,6 +5,11 @@ namespace Application.Features.ImportFeatures;
 
 public readonly record struct WorkloadKey(string TeacherId, string DisciplineId, string GroupId);
 
+public record ExistingWorkload(string Id, int FeedbackCount);
+
+/// <summary>Срез выгрузки со скрытого листа. Без TeacherIds — вся нагрузка семестра.</summary>
+public record ExportScope(PeriodKey Period, IReadOnlySet<string>? TeacherIds);
+
 /// <summary>Существующая учётная запись: у студента есть группа, у сотрудника нет.</summary>
 public record ExistingAccount(bool IsStudent, string? GroupName);
 
@@ -29,7 +34,7 @@ public class ImportReferenceData
     public Dictionary<string, string> DisciplineIds { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Нагрузка выбранного периода.</summary>
-    public HashSet<WorkloadKey> Workloads { get; init; } = [];
+    public Dictionary<WorkloadKey, ExistingWorkload> Workloads { get; init; } = [];
 }
 
 public record PlannedStudent(string GroupName, string Surname, string Name, string? Patronymic, string StudentNumber);
@@ -40,6 +45,8 @@ public record PlannedTeacher(string Surname, string Name, string Patronymic)
 }
 
 public record PlannedWorkload(string TeacherKey, string DisciplineName, string GroupName);
+
+public record PlannedWorkloadDeletion(string Id, string TeacherName, string DisciplineName, string GroupName);
 
 /// <summary>
 /// Что импорт создаст и что пропустит. Строится из файла и справочников, в БД ничего не пишет.
@@ -63,6 +70,9 @@ public class ImportPlan
 
     public List<PlannedWorkload> WorkloadsToCreate { get; } = [];
     public int ExistingWorkloads { get; set; }
+
+    /// <summary>Нагрузка из среза выгрузки, которую убрали из файла.</summary>
+    public List<PlannedWorkloadDeletion> WorkloadsToDelete { get; } = [];
 
     /// <summary>Группы с листа «Студенты», которые будут в БД после импорта.</summary>
     public List<string> StudentGroupNames { get; } = [];
@@ -88,8 +98,11 @@ public class ImportPlan
                 Students = new() { Create = StudentsToCreate.Count, Existing = ExistingStudents },
                 Teachers = new() { Create = TeachersToCreate.Count, Existing = ExistingTeachers },
                 Disciplines = new() { Create = DisciplinesToCreate.Count, Existing = ExistingDisciplines },
-                Workloads = new() { Create = WorkloadsToCreate.Count, Existing = ExistingWorkloads },
+                Workloads = new() { Create = WorkloadsToCreate.Count, Existing = ExistingWorkloads, Delete = WorkloadsToDelete.Count },
             },
+            WorkloadsToDelete = WorkloadsToDelete
+                .Select(w => new ImportWorkloadDto(w.TeacherName, w.DisciplineName, w.GroupName))
+                .ToList(),
             Errors = [.. Errors],
             Warnings = [.. Warnings],
         };

@@ -10,7 +10,7 @@ namespace Application.Features.ImportFeatures;
 
 /// <summary>
 /// Выгрузка нагрузки семестра в формате файла импорта: файл можно поправить и загрузить обратно.
-/// На лист «Студенты» попадают студенты групп из выгруженной нагрузки.
+/// На лист «Студенты» попадают студенты групп из выгруженной нагрузки, на скрытый лист — срез выгрузки.
 /// Без teacherIds — вся нагрузка семестра.
 /// </summary>
 public record ExportPeriodQuery(int StartYear, Term Term, IReadOnlyCollection<string>? TeacherIds) : IRequest<byte[]>, IQuery;
@@ -48,9 +48,13 @@ public class ExportPeriodQueryHandler : IRequestHandler<ExportPeriodQuery, byte[
             .Select(s => (IReadOnlyList<string>)[s.Group, s.Surname, s.Name, s.Patronymic ?? "", s.StudentNumber])
             .ToList();
 
+        List<IReadOnlyList<string>> scope = [[ImportFormat.ScopePeriod, ImportFormat.PeriodValue(period)]];
+        scope.AddRange((teacherIds ?? []).Select(id => (IReadOnlyList<string>)[ImportFormat.ScopeTeacher, id]));
+
         return _writer.Write([
             new SpreadsheetSheet(ImportFormat.StudentsSheet, ImportFormat.StudentColumns, students),
             new SpreadsheetSheet(ImportFormat.WorkloadsSheet, ImportFormat.WorkloadColumns, workloads),
+            new SpreadsheetSheet(ImportFormat.ScopeSheet, ImportFormat.ScopeColumns, scope, Hidden: true),
         ]);
     }
 }

@@ -154,7 +154,9 @@ public class ImportHandlerTests
         var file = await new ExportPeriodQueryHandler(_repo, _writer).Handle(new ExportPeriodQuery(2026, Term.Autumn, ids), _ct);
 
         Assert.Equal([7], file);
-        Assert.Equal([ImportFormat.StudentsSheet, ImportFormat.WorkloadsSheet], sheets!.Select(s => s.Name));
+        Assert.Equal([ImportFormat.StudentsSheet, ImportFormat.WorkloadsSheet, ImportFormat.ScopeSheet], sheets!.Select(s => s.Name));
+        Assert.True(sheets[2].Hidden);
+        Assert.Equal([[ImportFormat.ScopePeriod, "2026:Autumn"], [ImportFormat.ScopeTeacher, "t1"]], sheets[2].Rows);
         Assert.Equal(
             [["ИВТ-21", "Петров", "Пётр", "Петрович", "1"], ["ИВТ-22", "Борисов", "Борис", "", "2"]],
             sheets[0].Rows);
