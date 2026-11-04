@@ -62,11 +62,11 @@ public class CatalogEditTests(ApiFactory factory)
                 {
                     Teacher = w.TeacherRef!.Surname,
                     Discipline = w.DisciplineRef!.Name,
-                    Comments = w.FeedbackRefs!.Select(f => f.Comment).OrderBy(c => c).ToList(),
+                    Comments = w.FeedbackRefs!.Select(f => f.Comment).ToList(),
                 })
                 .OrderBy(w => w.Teacher).ThenBy(w => w.Discipline)
                 .ToListAsync())
-            .Select(w => $"{w.Teacher} / {w.Discipline} / {string.Join(", ", w.Comments)}")
+            .Select(w => $"{w.Teacher} / {w.Discipline} / {string.Join(", ", w.Comments.OrderBy(c => c, StringComparer.Ordinal))}")
             .ToList());
 
     private static async Task<T> FindAsync<T>(HttpClient admin, string url) =>
@@ -92,8 +92,10 @@ public class CatalogEditTests(ApiFactory factory)
         var merged = await (await admin.PostAsJsonAsync($"/api/Teachers/{source.Id}/merge", new { targetId = target.Id })).DataAsync<TeacherDto>();
         Assert.Equal(target.Id, merged.Id);
 
+        var expectedComments = new[] { $"{first} Основнова", $"{second} Дублёва" }
+            .OrderBy(c => c, StringComparer.Ordinal);
         Assert.Equal(
-            [$"Основнова / Физика / {first} Основнова, {second} Дублёва", "Основнова / Химия / "],
+            [$"Основнова / Физика / {string.Join(", ", expectedComments)}", "Основнова / Химия / "],
             await WorkloadsAsync(group));
         Assert.Empty((await (await admin.GetAsync($"/api/Teachers?query={dupe.Split(' ')[2]}")).DataAsync<PagedResultDto<TeacherDto>>()).Items!);
 
