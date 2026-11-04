@@ -16,8 +16,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - web_network
 
   redis:
     image: redis:latest
@@ -35,13 +33,7 @@ services:
       timeout: 10s
       retries: 5
     restart: unless-stopped
-    networks:
-      - web_network
 
 volumes:
   postgres-data:
   redis-data:
-
-networks:
-  web_network:
-    external: true

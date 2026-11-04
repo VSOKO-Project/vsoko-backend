@@ -88,23 +88,22 @@ Swagger UI is at `/swagger` in Development. Health checks: `GET /health/live`, `
 
 ## Quick start
 
-You need the external Docker network `web_network` and the Traefik proxy from `vsoko-infra`.
+For local development, run PostgreSQL and Redis in Docker:
 
 ```bash
 cp .env.example .env
-docker compose up -d    # postgres, redis, api → http://localhost:8000
-```
-
-Migrations don't run on startup. Apply them once the database is up:
-
-```bash
-dotnet ef database update --project src/Infrastructure --startup-project src/Presentation
-```
-
-For local development, run only PostgreSQL and Redis in Docker:
-
-```bash
+# Fill in the database and Redis credentials in .env.
 docker compose -f docker-compose.dev.yml up -d
+```
+
+Configure the API's database and Redis connection strings using environment
+variables or .NET user secrets; `dotnet run` does not load `.env` automatically.
+Use localhost and the published ports (PostgreSQL: 5432, Redis: 6380).
+In Development, migrations run automatically on API startup. To apply them separately:
+
+```bash
+ConnectionStrings__Database="Host=localhost;Database=vsoko;Username=vsoko_app;Password=…" \
+  dotnet ef database update --project src/Infrastructure --startup-project src/Infrastructure
 dotnet run --project src/Presentation
 ```
 
@@ -132,3 +131,13 @@ vsoko-api/
     ├── Presentation/       # controllers, filters, Program.cs
     └── Tools/              # ImportStudents, ImportWorkloads
 ```
+
+## CI
+
+The pipeline runs tests and builds the Docker image from `main`, publishing it to
+GitLab Container Registry with the commit SHA as its tag. A manual production deploy job applies the EF migration bundle first, then rolls
+out two API replicas. See [k8s/README.md](k8s/README.md).
+
+## Kubernetes
+
+Манифесты и порядок запуска: [k8s/README.md](k8s/README.md).

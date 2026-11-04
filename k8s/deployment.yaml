@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vsoko-api
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: vsoko-api
+  template:
+    metadata:
+      labels:
+        app: vsoko-api
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: gitlab-registry
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: vsoko-api
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: api
+          image: registry.gitlab.com/vsoko/vsoko-api:REPLACE_WITH_COMMIT_SHA
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          envFrom:
+            - configMapRef:
+                name: vsoko-api
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: password
+            - name: ConnectionStrings__Database
+              value: "Host=postgres;Port=5432;Database=vsoko;Username=vsoko_app;Password=$(POSTGRES_PASSWORD)"
+            - name: ConnectionStrings__Redis
+              value: "redis:6379,password=$(REDIS_PASSWORD)"
+            - name: Jwt__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: vsoko-api
+                  key: jwt-secret-key
+            - name: AI__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: vsoko-api
+                  key: openrouter-api-key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3

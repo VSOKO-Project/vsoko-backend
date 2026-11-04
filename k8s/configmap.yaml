@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vsoko-api
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_HTTP_PORTS: "8080"
+  Cors__AllowedOrigins: https://vsoko.tech
+  ReverseProxy__KnownNetwork: 10.42.0.0/16
+  Jwt__Audience: VSOKOproject.API
+  Jwt__Issuer: VSOKOproject.Client
+  Jwt__ExpireInMinute: "15"
+  Jwt__RefreshExpireInDays: "30"
+  AI__Model: z-ai/glm-5.3-flash
+  AI__Endpoint: https://openrouter.ai/api/v1

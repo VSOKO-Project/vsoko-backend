@@ -4,6 +4,7 @@ using Infrastructure.DataManager.Contexts;
 using Infrastructure.SecurityManager.AspNetCoreIdentity;
 using Infrastructure.SecurityManager.Tokens;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi;
 using System.Text.Json.Serialization;
 using Presentation.Common.Middlewares;
@@ -21,6 +22,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddApplication();
+
+// Trust forwarded headers only from the configured ingress network.
+var proxyNetwork = builder.Configuration["ReverseProxy:KnownNetwork"];
+if (!string.IsNullOrWhiteSpace(proxyNetwork))
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(proxyNetwork));
+    });
+}
 
 builder.Services.AddProblemDetails();
 
@@ -92,9 +104,15 @@ builder.Services.ApplyUserContext();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 app.UseSerilogRequestLogging();
 
-await app.Services.InitializeDatabaseAsync();
+// Production migrations run in a separate Kubernetes Job before deployment.
+if (app.Environment.IsDevelopment())
+{
+    await app.Services.InitializeDatabaseAsync();
+}
 
 app.UseHttpsRedirection();
 

@@ -1,0 +1,41 @@
+# Run separately before applying the Deployment; intentionally not in kustomization.yaml.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vsoko-api-migrate
+  namespace: vsoko
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: gitlab-registry
+      containers:
+        - name: migrate
+          image: registry.gitlab.com/vsoko/vsoko-api:REPLACE_WITH_COMMIT_SHA
+          command: [/app/efbundle]
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: DOTNET_ENVIRONMENT
+              value: Production
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: password
+            - name: ConnectionStrings__Database
+              value: "Host=postgres;Port=5432;Database=vsoko;Username=vsoko_app;Password=$(POSTGRES_PASSWORD)"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
