@@ -1,4 +1,3 @@
-using System.Reflection.Metadata;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -22,8 +21,8 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     {
         var requestName = typeof(TRequest).Name;
 
-        _logger.LogInformation("Start executing {RequestName} at {DateTime}: {@Request}", 
-            requestName, DateTime.UtcNow, request);
+        _logger.LogInformation("Start executing {RequestName} at {DateTime}",
+            requestName, DateTime.UtcNow);
 
         try
         {
@@ -36,8 +35,8 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing {RequestName} at {DateTime}. Data: {@Request}", 
-                requestName, DateTime.UtcNow, request);
+            _logger.LogError(ex, "Error executing {RequestName} at {DateTime}",
+                requestName, DateTime.UtcNow);
 
             throw;
         }
