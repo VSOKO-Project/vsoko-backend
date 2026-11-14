@@ -1,3 +1,4 @@
+using Application.Common.Sorting;
 using Application.Common.DTOs;
 using Application.Common.Exceptions;
 using Application.Common.Mappings;
@@ -40,6 +41,7 @@ public class FeedbackRepository : IFeedbackRepository
         var feedback = new Feedback
         {
             Comment = comment ?? "",
+            CreatedAtUtc = DateTime.UtcNow,
             WorkloadId = workloadId,
             StudentId = studentId ?? throw new UnauthorizationException("non Id in claims!"),
         };
@@ -78,7 +80,8 @@ public class FeedbackRepository : IFeedbackRepository
         string? disciplineId,
         string? teacherId,
         string? workloadId,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        FeedbackSortOrder sort = FeedbackSortOrder.Newest
     )
     {
         var spec = _accessService.GetSpecification();
@@ -106,8 +109,23 @@ public class FeedbackRepository : IFeedbackRepository
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-        var items = await _mapper.ProjectToDto(baseQuery)
-            .OrderBy(x => x.Id)
+        // Order before pagination. Keep undated/unrated legacy records at the end,
+        // and use a stable key when timestamps or average grades are equal.
+        var ordered = sort switch
+        {
+            FeedbackSortOrder.Oldest => baseQuery.OrderByDescending(f => f.CreatedAtUtc.HasValue)
+                .ThenBy(f => f.CreatedAtUtc).ThenBy(f => f.Id),
+            FeedbackSortOrder.GradeDesc => baseQuery.OrderByDescending(f => f.CriteriaFeedbackRefs!.Any())
+                .ThenByDescending(f => f.CriteriaFeedbackRefs!.Average(c => (double?)c.CriteriaScore))
+                .ThenByDescending(f => f.CreatedAtUtc).ThenBy(f => f.Id),
+            FeedbackSortOrder.GradeAsc => baseQuery.OrderByDescending(f => f.CriteriaFeedbackRefs!.Any())
+                .ThenBy(f => f.CriteriaFeedbackRefs!.Average(c => (double?)c.CriteriaScore))
+                .ThenByDescending(f => f.CreatedAtUtc).ThenBy(f => f.Id),
+            _ => baseQuery.OrderByDescending(f => f.CreatedAtUtc.HasValue)
+                .ThenByDescending(f => f.CreatedAtUtc).ThenBy(f => f.Id),
+        };
+
+        var items = await _mapper.ProjectToDto(ordered)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -164,8 +182,9 @@ public class FeedbackRepository : IFeedbackRepository
             feedback.Comment = comment;
 
         if (grades is not null)
-        {   try
-                {
+        {
+            try
+            {
                 _dbContext.RemoveRange(feedback.CriteriaFeedbackRefs!);
 
                 var newGrades = grades.Select(w => new CriteriaFeedback
@@ -176,7 +195,7 @@ public class FeedbackRepository : IFeedbackRepository
                 }).ToList();
 
                 await _dbContext.AddRangeAsync(newGrades, cancellationToken);
-                }
+            }
             catch (Exception ex)
             {
                 throw new ValidationException(ex.Message);

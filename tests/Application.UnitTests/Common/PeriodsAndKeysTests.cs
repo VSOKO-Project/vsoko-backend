@@ -97,8 +97,8 @@ public class PeriodsAndKeysTests
         Assert.Equal("feedback", CacheKeys.Feedback.Tag);
         Assert.Equal("feedback:student:s1", CacheKeys.Feedback.GetByStudent("s1"));
         Assert.Equal("feedback:id:f1:student:s1", CacheKeys.Feedback.GetById("f1", "s1"));
-        Assert.Equal("feedback:list:p1:s10:dd1:tt1:ww1", CacheKeys.Feedback.GetPaged(1, 10, "d1", "t1", "w1"));
-        Assert.Equal("feedback:list:p1:s10:student:s1:d:t:w", CacheKeys.Feedback.GetPagedForStudent(1, 10, "s1"));
+        Assert.Equal("feedback:list:v2:p1:s10:dd1:tt1:ww1:sortNewest", CacheKeys.Feedback.GetPaged(1, 10, "d1", "t1", "w1"));
+        Assert.Equal("feedback:list:v2:p1:s10:student:s1:d:t:w:sortNewest", CacheKeys.Feedback.GetPagedForStudent(1, 10, "s1"));
 
         Assert.Equal("teacher-list", CacheKeys.Teacher.ListTag);
         Assert.Equal("teacher:list:p1:s10:per:y:q", CacheKeys.Teacher.GetPaged(1, 10, "", PeriodFilter.All));

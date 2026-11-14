@@ -1,3 +1,4 @@
+using Application.Common.Sorting;
 using Application.Common.DTOs;
 using Application.Common.Periods;
 using Domain.Entities;
@@ -22,7 +23,8 @@ public interface IFeedbackRepository : IRepository<Feedback>
         string? disciplineId,
         string? teacherId,
         string? workloadId,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        FeedbackSortOrder sort = FeedbackSortOrder.Newest
     );
 
     public Task<FeedbackDto> GetFeedbackById(

@@ -1,3 +1,5 @@
+using Application.Common.Sorting;
+using FluentValidation;
 using Application.Common.Caching;
 using Application.Common.CQRS;
 using Application.Common.DTOs;
@@ -11,11 +13,22 @@ namespace Application.Features.FeedbackFeatures.Query;
 
 public class GetAllFeedbackQuery : IRequest<PagedResultDto<FeedbackDto>>, IQuery
 {
+    public FeedbackSortOrder Sort { get; init; } = FeedbackSortOrder.Newest;
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     public string? DisciplineId { get; init; }
     public string? TeacherId { get; init; }
     public string? WorkloadId { get; init; }
+}
+
+public class GetAllFeedbackQueryValidator : AbstractValidator<GetAllFeedbackQuery>
+{
+    public GetAllFeedbackQueryValidator()
+    {
+        RuleFor(x => x.Page).GreaterThan(0);
+        RuleFor(x => x.PageSize).InclusiveBetween(1, 1000);
+        RuleFor(x => x.Sort).IsInEnum();
+    }
 }
 
 public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, PagedResultDto<FeedbackDto>>
@@ -36,13 +49,13 @@ public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, P
         var userId = _userContext.UserId ?? throw new UnauthorizedAccessException();
         var role = _userContext.Role;
 
-        var key = role == "student" 
-        ? CacheKeys.Feedback.GetPagedForStudent(request.Page, request.PageSize, userId!, request.DisciplineId, request.TeacherId, request.WorkloadId)
-        : CacheKeys.Feedback.GetPaged(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId);
+        var key = role == "student"
+        ? CacheKeys.Feedback.GetPagedForStudent(request.Page, request.PageSize, userId!, request.DisciplineId, request.TeacherId, request.WorkloadId, request.Sort)
+        : CacheKeys.Feedback.GetPaged(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, request.Sort);
 
         return (await _cacheService.GetOrCreateAsync(
             key,
-            async (ct) => await _feedbackRepository.GetPagedFeedbacks(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, ct),
+            async (ct) => await _feedbackRepository.GetPagedFeedbacks(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, ct, request.Sort),
             [CacheKeys.Feedback.Tag],
             cancellationToken))!;
     }

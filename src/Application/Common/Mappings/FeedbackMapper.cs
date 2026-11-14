@@ -13,7 +13,6 @@ public partial class FeedbackMapper
     [UseMapper]
     private readonly StudentMapper _studentMapper = new();
 
-    [MapperIgnoreSource(nameof(Feedback.CreatedAtUtc))]
     [MapperIgnoreSource(nameof(Feedback.UpdatedAtUtc))]
     [MapperIgnoreSource(nameof(Feedback.IsDeleted))]
     [MapperIgnoreSource(nameof(Feedback.CreatedById))]

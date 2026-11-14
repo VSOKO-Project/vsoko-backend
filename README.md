@@ -141,3 +141,9 @@ out two API replicas. See [k8s/README.md](k8s/README.md).
 ## Kubernetes
 
 Манифесты и порядок запуска: [k8s/README.md](k8s/README.md).
+
+### Feedback sorting
+
+`GET /api/Feedback` accepts `Sort=Newest` (default), `Oldest`, `GradeDesc`, or `GradeAsc`, together with the existing `TeacherId`, `DisciplineId`, `WorkloadId`, `Page` and `PageSize` filters. Sorting happens in the database before pagination. Equal values have a stable ID tie-breaker; undated or unrated legacy records remain at the end of the relevant ordering. Cache keys include the sort order.
+
+Feedback responses now include nullable `createdAtUtc` and `averageGrade` fields. The average is calculated from all criterion scores in that feedback. Existing database creation timestamps are exposed without a schema migration. Invalid sort values and page sizes outside 1–1000 return 400.

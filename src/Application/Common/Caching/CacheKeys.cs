@@ -1,3 +1,4 @@
+using Application.Common.Sorting;
 using Application.Common.Periods;
 
 namespace Application.Common.Caching;
@@ -34,8 +35,8 @@ public static class CacheKeys
         public static string Tag => "feedback";
         public static string GetByStudent(string userId) => $"feedback:student:{userId}";
         public static string GetById(string id, string studentId) => $"feedback:id:{id}:student:{studentId}";
-        public static string GetPaged(int page, int pageSize, string? disciplineId = null, string? teacherId = null, string? workloadId = null) => $"feedback:list:p{page}:s{pageSize}:d{disciplineId}:t{teacherId}:w{workloadId}";
-        public static string GetPagedForStudent(int page, int pageSize, string studentId, string? disciplineId = null, string? teacherId = null, string? workloadId = null) => $"feedback:list:p{page}:s{pageSize}:student:{studentId}:d{disciplineId}:t{teacherId}:w{workloadId}";
+        public static string GetPaged(int page, int pageSize, string? disciplineId = null, string? teacherId = null, string? workloadId = null, FeedbackSortOrder sort = FeedbackSortOrder.Newest) => $"feedback:list:v2:p{page}:s{pageSize}:d{disciplineId}:t{teacherId}:w{workloadId}:sort{sort}";
+        public static string GetPagedForStudent(int page, int pageSize, string studentId, string? disciplineId = null, string? teacherId = null, string? workloadId = null, FeedbackSortOrder sort = FeedbackSortOrder.Newest) => $"feedback:list:v2:p{page}:s{pageSize}:student:{studentId}:d{disciplineId}:t{teacherId}:w{workloadId}:sort{sort}";
     }
 
     public static class Teacher

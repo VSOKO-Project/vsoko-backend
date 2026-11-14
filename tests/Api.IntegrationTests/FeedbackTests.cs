@@ -67,6 +67,8 @@ public class FeedbackTests(ApiFactory factory)
             new { feedback = Grades(criteria, 4), comment = "Хорошо", workloadId = workload.Id })).DataAsync<FeedbackDto>();
         Assert.Equal("Хорошо", created.Comment);
         Assert.Equal(criteria.Count, created.CriteriaFeedback!.Count);
+        Assert.NotNull(created.CreatedAtUtc);
+        Assert.Equal(4d, created.AverageGrade);
         Assert.Equal(workload.Id, created.Workload!.Id);
 
         // Оценённая нагрузка пропадает из списка студента.
@@ -218,4 +220,70 @@ public class FeedbackTests(ApiFactory factory)
         await (await client.PostAsJsonAsync("/api/Feedback", new { feedback = Grades(criteria, 4), workloadId = "missing" }))
             .ProblemAsync(HttpStatusCode.NotFound);
     }
+    [Fact]
+    public async Task Admin_SortsFilteredFeedbackBeforePagination_AndSeparatesCacheEntries()
+    {
+        var (owner, firstStudent, workload) = await StudentWithWorkload();
+        var criterion = (await Criteria(owner))[0];
+        var students = new List<string> { firstStudent };
+        for (var i = 1; i < 6; i++) students.Add((await factory.CreateStudentAsync(workload.GroupId)).Id);
+        var prefix = Guid.NewGuid().ToString("N");
+        string Id(char suffix) => $"{prefix}-{suffix}";
+        var old = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var middle = old.AddDays(1);
+        var newest = old.AddDays(2);
+        await factory.WithDbAsync(async db =>
+        {
+            DateTime?[] dates = [old, newest, middle, newest, null, null];
+            int?[] grades = [4, 1, 5, 4, 2, null];
+            for (var i = 0; i < students.Count; i++)
+            {
+                var feedback = new Feedback
+                {
+                    Id = Id((char)('a' + i)),
+                    StudentId = students[i],
+                    WorkloadId = workload.Id,
+                    Comment = $"sorting-{i}",
+                    CreatedAtUtc = dates[i],
+                    CriteriaFeedbackRefs = []
+                };
+                if (grades[i] is { } grade) feedback.CriteriaFeedbackRefs.Add(new CriteriaFeedback { CriteriaId = criterion.Id, CriteriaScore = grade });
+                db.Feedbacks.Add(feedback);
+            }
+            await db.SaveChangesAsync();
+            // The DB normally supplies NOW(); explicitly model legacy undated rows.
+            var undatedIds = new[] { Id('e'), Id('f') };
+            await db.Feedbacks.Where(f => undatedIds.Contains(f.Id))
+                .ExecuteUpdateAsync(update => update.SetProperty(f => f.CreatedAtUtc, (DateTime?)null));
+        });
+        var admin = await factory.AdminAsync();
+        async Task<PagedResultDto<FeedbackDto>> Page(string sort, int page = 1, int size = 10) =>
+            await (await admin.GetAsync($"/api/Feedback?teacherId={workload.TeacherId}&sort={sort}&page={page}&pageSize={size}")).DataAsync<PagedResultDto<FeedbackDto>>();
+
+        Assert.Equal(new[] { 'b', 'd', 'c', 'a', 'e', 'f' }.Select(Id), (await Page("Newest")).Items!.Select(f => f.Id));
+        Assert.Equal(new[] { 'a', 'c', 'b', 'd', 'e', 'f' }.Select(Id), (await Page("Oldest")).Items!.Select(f => f.Id));
+        Assert.Equal(new[] { 'c', 'd', 'a', 'e', 'b', 'f' }.Select(Id), (await Page("GradeDesc")).Items!.Select(f => f.Id));
+        Assert.Equal(new[] { 'b', 'e', 'd', 'a', 'c', 'f' }.Select(Id), (await Page("GradeAsc")).Items!.Select(f => f.Id));
+        var page2 = await Page("GradeDesc", 2, 2);
+        Assert.Equal(6, page2.TotalCount);
+        Assert.Equal(3, page2.TotalPages);
+        Assert.Equal(new[] { Id('a'), Id('e') }, page2.Items!.Select(f => f.Id));
+        var result = (await Page("Newest")).Items!.First();
+        Assert.Equal(newest, result.CreatedAtUtc);
+        Assert.Equal(1d, result.AverageGrade);
+        // A student still sees only their own feedback, regardless of ordering.
+        Assert.Equal(Id('a'), Assert.Single((await (await owner.GetAsync("/api/Feedback?sort=GradeDesc")).DataAsync<PagedResultDto<FeedbackDto>>()).Items!).Id);
+    }
+
+    [Theory]
+    [InlineData("sort=Unknown")]
+    [InlineData("sort=99")]
+    [InlineData("page=0")]
+    [InlineData("pageSize=0")]
+    public async Task Feedback_RejectsInvalidSortingAndPaging(string query)
+    {
+        var admin = await factory.AdminAsync();
+        await (await admin.GetAsync($"/api/Feedback?{query}")).ProblemAsync(HttpStatusCode.BadRequest);
+    }
+
 }
