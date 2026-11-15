@@ -16,7 +16,7 @@ COPY . .
 WORKDIR "/src/src/Presentation"
 RUN dotnet publish "Presentation.csproj" -c Release -o /app/publish /p:UseAppHost=false --no-restore
 
-RUN dotnet tool install --tool-path /tools dotnet-ef --version 10.0.2
+RUN dotnet tool install --tool-path /tools dotnet-ef --version 10.0.15
 RUN /tools/dotnet-ef migrations bundle \
     --project /src/src/Infrastructure/Infrastructure.csproj \
     --startup-project /src/src/Infrastructure/Infrastructure.csproj \
