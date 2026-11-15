@@ -4,9 +4,9 @@ using Application.Features.ImportFeatures;
 
 namespace Application.Interfaces.DataManager.Repositories;
 
-public record ImportApplyResult(string PeriodId, List<string> CreatedGroupIds, List<string> StudentGroupIds);
+public record ImportApplyResult(string PeriodId, List<string> CreatedGroupIds, List<string> StudentGroupIds, int? DeletedWorkloadCount = null);
 
-public record ExportWorkloadRow(string TeacherFio, string Discipline, string Group);
+public record ExportWorkloadRow(string TeacherFio, string Discipline, string Group, string TeacherId = "", string DisciplineId = "");
 
 public record ExportStudentRow(string Group, string Surname, string Name, string? Patronymic, string StudentNumber);
 

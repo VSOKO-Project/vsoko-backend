@@ -35,7 +35,13 @@ public static class Discipline
         );
 
         services.AddSingleton(builder.Build());
-        services.AddScoped<IFeedbackSummarizer, FeedbackSummarizer>();
+        AiSettings.AnalysisPollSeconds = Math.Clamp(AiSettings.AnalysisPollSeconds, 1, 300);
+        AiSettings.RequestTimeoutSeconds = Math.Clamp(AiSettings.RequestTimeoutSeconds, 5, 300);
+        services.AddSingleton(AiSettings);
+        services.AddScoped<IFeedbackAnalysisModel, FeedbackAnalysisModel>();
+        services.AddScoped<FeedbackAnalysisProcessor>();
+        services.AddScoped<IFeedbackAnalysisService, FeedbackAnalysisService>();
+        services.AddHostedService<FeedbackAnalysisWorker>();
 
         return services;
     }

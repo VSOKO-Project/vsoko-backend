@@ -52,6 +52,12 @@ public class DisciplinesController : BaseApiController
         };
     }
 
+    [HttpGet("{id}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiSuccessResult<DisciplineDto>), Status200OK)]
+    public async Task<ApiSuccessResult<DisciplineDto>> GetById(string id, CancellationToken cancellationToken) =>
+        new() { Code = Status200OK, Message = "Success", Data = await _sender.Send(new GetDisciplineByIdQuery(id), cancellationToken) };
+
     /// <summary>Исправляет название. Если такое название уже есть, отвечает 400: записи нужно объединить.</summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]

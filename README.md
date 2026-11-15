@@ -151,3 +151,25 @@ Feedback responses now include nullable `createdAtUtc` and `averageGrade` fields
 ## System guide
 
 [Product, architecture, integration and operations](https://gitlab.com/vsoko/specs).
+
+## Dashboard aggregates
+
+`GET /api/Dashboard` is Admin-only and returns the complete bounded dashboard payload: feedback and teacher counts, discipline count, mean discipline rating, four distribution buckets, up to five low/high rated disciplines and at most six chronological semester points. Optional `PeriodId` or `StartYear` filters current metrics; they are mutually exclusive. A semester selection includes up to six semesters ending at that semester; a year selection includes that year's semesters. Missing periods return 404.
+
+Grades use only Discipline criteria. The overall and semester values are arithmetic means of rated discipline averages (equal discipline weights); unrated disciplines are excluded and missing averages are `null`. Historical scores are grouped by semester and discipline in PostgreSQL. No raw feedback or unbounded ranking lists are sent to the browser. Responses are uncached so feedback and catalog changes appear on the next request. No schema migration is required.
+
+Dashboard coverage counts eligible student–workload pairs using the current group roster (non-deleted, non-blocked accounts). Submitted counts use the same cohort and workload, so the numerator and denominator are comparable. Each semester and the selected-period total expose `coverage: { submittedCount, possibleCount, completionPercent }`; zero possible assignments return `null` percentage. This is current-roster coverage, not an immutable historical roster snapshot.
+
+Rating payloads include `feedbackCount`: the number of reviews contributing to that entity's grade (at least one criterion of the relevant Teacher/Discipline kind). The dashboard exposes `ratedFeedbackCount` and an optional `comparison` between adjacent academic semesters, with the signed difference and each semester's contributing review count. Missing/empty semesters never produce a fabricated zero or a comparison across gaps. Rating cache keys are versioned for the new payload.
+
+Admin entity lookups: `GET /api/Teachers/{id}` and `GET /api/Disciplines/{id}`. Feedback pagination accepts `PeriodId` / `StartYear`, applies the period in SQL before counting/sorting/pagination, and includes it in the cache key. Student access restrictions still apply to filtered requests.
+
+### Анализ отзывов с источниками
+
+ИИ обрабатывает каждый комментарий в фоне, используя каталог категорий. Отчёт
+содержит точные количества и цитаты с ID исходных отзывов; единичные серьёзные
+сообщения выводятся отдельно. Новые категории утверждает администратор.
+
+Нужна миграция `AddFeedbackAnalysis`. Контракт `GET /api/Summaries/*` изменён со
+строки на структурированный отчёт; API и frontend выпускаются совместно.
+Настройки, повторы и ограничения: [docs/feedback-analysis.md](docs/feedback-analysis.md).

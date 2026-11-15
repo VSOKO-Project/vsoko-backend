@@ -1,10 +1,18 @@
 using Application.Common.Periods;
 using Domain.Enums;
+using Application.Features.ImportFeatures;
 
 namespace Application.Common.DTOs;
 
 public class ImportReportDto
 {
+    public ImportMode Mode { get; set; }
+    public string PreviewToken { get; set; } = "";
+    public bool CanSynchronize { get; set; }
+    public string ScopeDescription { get; set; } = "";
+    public List<ImportChangeDto> Changes { get; set; } = [];
+    public List<string> NewTeachers { get; set; } = [];
+    public List<string> NewDisciplines { get; set; } = [];
     public ImportPeriodDto Period { get; set; } = null!;
     public ImportSummaryDto Summary { get; set; } = null!;
     public List<ImportIssueDto> Errors { get; set; } = [];
@@ -37,6 +45,7 @@ public class ImportSummaryDto
 public class ImportCountDto
 {
     public int Create { get; set; }
+    public int Update { get; set; }
     public int Existing { get; set; }
     public int Delete { get; set; }
 }
@@ -44,6 +53,7 @@ public class ImportCountDto
 public record ImportWorkloadDto(string Teacher, string Discipline, string Group);
 
 public record ImportIssueDto(string Sheet, int Row, string Message);
+public record ImportChangeDto(string Entity, string Key, string Field, string Before, string After);
 
 public class StudentCredentialDto
 {

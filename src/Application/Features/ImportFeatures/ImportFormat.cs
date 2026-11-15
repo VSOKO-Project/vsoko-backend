@@ -17,6 +17,8 @@ public static class ImportFormat
     public const string StudentNumber = "Номер зачётки";
 
     public const string TeacherFio = "ФИО преподавателя";
+    public const string TeacherId = "ID преподавателя";
+    public const string DisciplineId = "ID дисциплины";
     public const string Discipline = "Дисциплина";
 
     /// <summary>
@@ -28,12 +30,14 @@ public static class ImportFormat
     public const string ScopeValue = "Значение";
     public const string ScopePeriod = "period";
     public const string ScopeTeacher = "teacher";
+    public const string ScopeTeacherCount = "teacherCount";
 
     public const long MaxFileSize = 5 * 1024 * 1024;
     public const int MaxRowsPerSheet = 10_000;
 
     public static readonly string[] StudentColumns = [Group, Surname, Name, Patronymic, StudentNumber];
     public static readonly string[] WorkloadColumns = [TeacherFio, Discipline, Group];
+    public static readonly string[] ExportWorkloadColumns = [TeacherFio, Discipline, Group, TeacherId, DisciplineId];
     public static readonly string[] ScopeColumns = [ScopeKey, ScopeValue];
 
     public static string PeriodValue(PeriodKey period) => $"{period.StartYear}:{period.Term}";

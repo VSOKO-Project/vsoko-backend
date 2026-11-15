@@ -24,6 +24,7 @@ public partial class TeacherMapper
     [MapperIgnoreSource(nameof(Teacher.Name))]
     [MapperIgnoreSource(nameof(Teacher.Patronymic))]
     [MapperIgnoreTarget(nameof(RatingDto.Grade))]
+    [MapperIgnoreTarget(nameof(RatingDto.FeedbackCount))]
     [MapProperty(nameof(Teacher.Surname), nameof(RatingDto.Name))]
     public partial RatingDto MapToRating(Teacher teacher);
 
@@ -35,6 +36,8 @@ public partial class TeacherMapper
         {
             Id = t.Id,
             Name = (t.Surname + " " + t.Name + " " + t.Patronymic).Trim(),
+            FeedbackCount = t.WorkloadsRefs!.AsQueryable().Where(inPeriod).SelectMany(w => w.FeedbackRefs!)
+                .Count(f => f.CriteriaFeedbackRefs!.Any(c => c.CriteriaRef.Object == CriteriaObject.Teacher)),
             Grade = t.WorkloadsRefs!.AsQueryable().Where(inPeriod).SelectMany(w => w.FeedbackRefs!)
                 .SelectMany(f => f.CriteriaFeedbackRefs!)
                 .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Teacher)

@@ -23,7 +23,7 @@ public class CatalogHandlerTests
     private readonly IDisciplineRepository _disciplines = Substitute.For<IDisciplineRepository>();
     private readonly IWorkloadRepository _workloads = Substitute.For<IWorkloadRepository>();
     private readonly IFeedbackRepository _feedback = Substitute.For<IFeedbackRepository>();
-    private readonly IFeedbackSummarizer _summarizer = Substitute.For<IFeedbackSummarizer>();
+    private readonly IFeedbackAnalysisService _summarizer = Substitute.For<IFeedbackAnalysisService>();
     private readonly FakeCacheService _cache = new();
     private readonly CancellationToken _ct = CancellationToken.None;
 
@@ -85,35 +85,18 @@ public class CatalogHandlerTests
         Assert.Equal(CacheKeys.Discipline.GetRating(3, 7, "x", Period), Assert.Single(_cache.Requests).Key);
     }
 
-    [Fact]
-    public async Task TeacherSummary_SummarizesCommentsForPeriod()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Summary_PassesSelectionAndPeriodWithoutCaching(bool teacher)
     {
-        List<string> comments = ["a", "b"];
-        _teachers.GetByIdAsync("t1", Arg.Any<CancellationToken>())
-            .Returns(new TeacherDto { Id = "t1", Surname = "Петрова", Name = "Анна", Patronymic = "Ивановна" });
-        _feedback.GetCommentByTeacherId("t1", Period, Arg.Any<CancellationToken>()).Returns(comments);
-        _summarizer.SummarizeTeacherAsync("Петрова Анна Ивановна", comments, Arg.Any<CancellationToken>()).Returns("summary");
-
-        var result = await new GetTeacherSummaryByIdQueryHandler(_teachers, _feedback, _summarizer, _cache)
-            .Handle(new GetTeacherSummaryByIdQuery("t1", "p1", 2026), _ct);
-
-        Assert.Equal("summary", result);
-        Assert.Equal((CacheKeys.Teacher.GetSummary("t1", Period), CacheKeys.Teacher.ListTag), Assert.Single(_cache.Requests));
-    }
-
-    [Fact]
-    public async Task DisciplineSummary_SummarizesCommentsForPeriod()
-    {
-        List<string> comments = ["a"];
-        _disciplines.GetByIdAsync("d1", Arg.Any<CancellationToken>()).Returns(new DisciplineDto { Id = "d1", Name = "Физика" });
-        _feedback.GetCommentByDisciplineId("d1", PeriodFilter.All, Arg.Any<CancellationToken>()).Returns(comments);
-        _summarizer.SummarizeDisciplineAsync("Физика", comments, Arg.Any<CancellationToken>()).Returns("summary");
-
-        var result = await new GetDisciplineSummaryByIdQueryHandler(_disciplines, _feedback, _summarizer, _cache)
-            .Handle(new GetDisciplineSummaryByIdQuery("d1"), _ct);
-
-        Assert.Equal("summary", result);
-        Assert.Equal((CacheKeys.Discipline.GetSummary("d1", PeriodFilter.All), CacheKeys.Discipline.ListTag), Assert.Single(_cache.Requests));
+        var report = new FeedbackReportDto { ProcessedCount = 7 };
+        _summarizer.GetReportAsync("target", teacher, Period, Arg.Any<CancellationToken>()).Returns(report);
+        var result = teacher
+            ? await new GetTeacherSummaryByIdQueryHandler(_summarizer).Handle(new("target", "p1", 2026), _ct)
+            : await new GetDisciplineSummaryByIdQueryHandler(_summarizer).Handle(new("target", "p1", 2026), _ct);
+        Assert.Same(report, result);
+        Assert.Empty(_cache.Requests);
     }
 
     [Fact]

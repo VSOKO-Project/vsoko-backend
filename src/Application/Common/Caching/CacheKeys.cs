@@ -25,7 +25,7 @@ public static class CacheKeys
     {
         public static string ListTag => "discipline-list";
         public static string GetPaged(int page, int pageSize, string query, PeriodFilter period) => $"discipline:list:p{page}:s{pageSize}:{period.CacheKey}:q{query}";
-        public static string GetRating(int page, int pageSize, string query, PeriodFilter period) => $"discipline:rating:p{page}:s{pageSize}:{period.CacheKey}:q{query}";
+        public static string GetRating(int page, int pageSize, string query, PeriodFilter period) => $"discipline:rating:v2:p{page}:s{pageSize}:{period.CacheKey}:q{query}";
         public static string GetSummary(string id, PeriodFilter period) => $"discipline:summary:{id}:{period.CacheKey}";
     }
 
@@ -43,7 +43,7 @@ public static class CacheKeys
     {
         public static string ListTag => "teacher-list";
         public static string GetPaged(int page, int pageSize, string query, PeriodFilter period) => $"teacher:list:p{page}:s{pageSize}:{period.CacheKey}:q{query}";
-        public static string GetRating(int page, int pageSize, string query, PeriodFilter period) => $"teacher:rating:p{page}:s{pageSize}:{period.CacheKey}:q{query}";
+        public static string GetRating(int page, int pageSize, string query, PeriodFilter period) => $"teacher:rating:v2:p{page}:s{pageSize}:{period.CacheKey}:q{query}";
         public static string GetSummary(string id, PeriodFilter period) => $"teacher:summary:{id}:{period.CacheKey}";
     }
 }

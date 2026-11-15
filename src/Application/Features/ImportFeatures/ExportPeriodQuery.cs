@@ -38,7 +38,7 @@ public class ExportPeriodQueryHandler : IRequestHandler<ExportPeriodQuery, byte[
             .OrderBy(w => w.TeacherFio)
             .ThenBy(w => w.Discipline)
             .ThenBy(w => w.Group)
-            .Select(w => (IReadOnlyList<string>)[w.TeacherFio, w.Discipline, w.Group])
+            .Select(w => (IReadOnlyList<string>)[w.TeacherFio, w.Discipline, w.Group, w.TeacherId, w.DisciplineId])
             .ToList();
 
         var students = export.Students
@@ -50,10 +50,11 @@ public class ExportPeriodQueryHandler : IRequestHandler<ExportPeriodQuery, byte[
 
         List<IReadOnlyList<string>> scope = [[ImportFormat.ScopePeriod, ImportFormat.PeriodValue(period)]];
         scope.AddRange((teacherIds ?? []).Select(id => (IReadOnlyList<string>)[ImportFormat.ScopeTeacher, id]));
+        scope.Add([ImportFormat.ScopeTeacherCount, (teacherIds?.Distinct().Count() ?? 0).ToString()]);
 
         return _writer.Write([
             new SpreadsheetSheet(ImportFormat.StudentsSheet, ImportFormat.StudentColumns, students),
-            new SpreadsheetSheet(ImportFormat.WorkloadsSheet, ImportFormat.WorkloadColumns, workloads),
+            new SpreadsheetSheet(ImportFormat.WorkloadsSheet, ImportFormat.ExportWorkloadColumns, workloads),
             new SpreadsheetSheet(ImportFormat.ScopeSheet, ImportFormat.ScopeColumns, scope, Hidden: true),
         ]);
     }

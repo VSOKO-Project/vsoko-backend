@@ -15,7 +15,7 @@ public class ImportTests(ApiFactory factory)
 {
     private static readonly RosterFile Roster = new();
 
-    private static MultipartFormDataContent Form(byte[] file, int startYear, Term term, string fileName = "roster.xlsx")
+    private static MultipartFormDataContent Form(byte[] file, int startYear, Term term, string fileName = "roster.xlsx", ImportMode mode = ImportMode.AddOnly, string? token = null)
     {
         var content = new ByteArrayContent(file);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -24,7 +24,16 @@ public class ImportTests(ApiFactory factory)
             { content, "file", fileName },
             { new StringContent(startYear.ToString()), "startYear" },
             { new StringContent(term.ToString()), "term" },
+            { new StringContent(mode.ToString()), "mode" },
+            { new StringContent(token ?? ""), "previewToken" },
         };
+    }
+
+    private static async Task<HttpResponseMessage> Apply(HttpClient admin, byte[] file, int year, Term term,
+        string fileName = "roster.xlsx", ImportMode mode = ImportMode.AddOnly)
+    {
+        var preview = await (await admin.PostAsync("/api/Import/preview", Form(file, year, term, fileName, mode))).DataAsync<ImportReportDto>();
+        return await admin.PostAsync("/api/Import/apply", Form(file, year, term, fileName, mode, preview.PreviewToken));
     }
 
     private static byte[] File(string[][] students, string[][] workloads) =>
@@ -51,7 +60,7 @@ public class ImportTests(ApiFactory factory)
         Assert.Equal((1, 1, 2), (preview.Summary.Groups.Create, preview.Summary.Students.Create, preview.Summary.Workloads.Create));
         Assert.Equal(1, preview.Summary.Disciplines.Existing);
 
-        var applied = await (await admin.PostAsync("/api/Import/apply", Form(file, 2040, Term.Spring))).DataAsync<ImportReportDto>();
+        var applied = await (await Apply(admin, file, 2040, Term.Spring)).DataAsync<ImportReportDto>();
         Assert.NotNull(applied.Period.Id);
         var groupId = Assert.Single(applied.CreatedGroupIds!);
         Assert.Equal([groupId], applied.StudentGroupIds);
@@ -89,7 +98,7 @@ public class ImportTests(ApiFactory factory)
         var file = File(
             [[group, "Выгрузов", "Пётр", "", number]],
             [[teacher, "Физика", group], ["Сидоров Дмитрий Сергеевич", "Физика", group]]);
-        await admin.PostAsync("/api/Import/apply", Form(file, 2042, Term.Autumn));
+        await Apply(admin, file, 2042, Term.Autumn);
 
         var teachers = await (await admin.GetAsync("/api/Import/teachers?startYear=2042&term=Autumn")).DataAsync<List<TeacherDto>>();
         Assert.Equal(2, teachers.Count);
@@ -107,7 +116,9 @@ public class ImportTests(ApiFactory factory)
         var filtered = await admin.GetAsync($"/api/Import/export?startYear=2042&term=Autumn&teacherIds={teacherId}");
         var sheets = Roster.Read(await filtered.Content.ReadAsStreamAsync());
         var workload = Assert.Single(sheets.Single(s => s.Name == ImportFormat.WorkloadsSheet).Rows);
-        Assert.Equal([teacher, "Физика", group], workload.Values);
+        Assert.Equal([teacher, "Физика", group], workload.Values.Take(3));
+        Assert.Equal(teacherId, workload.Values[3]);
+        Assert.NotEmpty(workload.Values[4]);
         Assert.Single(sheets.Single(s => s.Name == ImportFormat.StudentsSheet).Rows);
 
         var missing = await admin.GetAsync("/api/Import/export?startYear=2043&term=Autumn");
@@ -124,10 +135,10 @@ public class ImportTests(ApiFactory factory)
         var kept = $"Оставлена Ольга {ApiFactory.Unique("О")}";
         var removed = $"Удалёнов Устин {ApiFactory.Unique("У")}";
         var reviewed = $"Отзывова Ольга {ApiFactory.Unique("О")}";
-        await admin.PostAsync("/api/Import/apply", Form(
+        await Apply(admin,
             File([[group, "Удалёнов", "Пётр", "", number]],
                 [[kept, "Физика", group], [removed, "Физика", group], [reviewed, "Физика", group]]),
-            2044, Term.Autumn));
+            2044, Term.Autumn);
 
         await factory.WithDbAsync(async db =>
         {
@@ -148,7 +159,7 @@ public class ImportTests(ApiFactory factory)
             new SpreadsheetSheet(scope.Name, scope.Headers, scope.Rows.Select(r => r.Values).ToList(), Hidden: true),
         ]);
 
-        var preview = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2044, Term.Autumn))).DataAsync<ImportReportDto>();
+        var preview = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2044, Term.Autumn, mode: ImportMode.SynchronizeWorkloads))).DataAsync<ImportReportDto>();
         Assert.Empty(preview.Errors);
         Assert.Equal(1, preview.Summary.Workloads.Delete);
         Assert.Equal(new ImportWorkloadDto(removed, "Физика", group), Assert.Single(preview.WorkloadsToDelete));
@@ -158,7 +169,7 @@ public class ImportTests(ApiFactory factory)
         var otherPeriod = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2045, Term.Spring))).DataAsync<ImportReportDto>();
         Assert.Equal(0, otherPeriod.Summary.Workloads.Delete);
 
-        var applied = await (await admin.PostAsync("/api/Import/apply", Form(edited, 2044, Term.Autumn))).DataAsync<ImportReportDto>();
+        var applied = await (await Apply(admin, edited, 2044, Term.Autumn, mode: ImportMode.SynchronizeWorkloads)).DataAsync<ImportReportDto>();
         Assert.Equal(1, applied.Summary.Workloads.Delete);
 
         var surnames = await factory.WithDbAsync(db => db.Workloads
@@ -177,7 +188,7 @@ public class ImportTests(ApiFactory factory)
         var number = ApiFactory.Unique("e");
         var file = File([["ИВТ-99", "", "Иван", "", number]], [["Петрова", "Физика", "НЕТ-ТАКОЙ"]]);
 
-        var response = await admin.PostAsync("/api/Import/apply", Form(file, 2041, Term.Autumn));
+        var response = await Apply(admin, file, 2041, Term.Autumn);
 
         var problem = await response.ProblemAsync(HttpStatusCode.BadRequest);
         Assert.True(problem.GetProperty("report").GetProperty("errors").GetArrayLength() >= 3);
@@ -199,7 +210,7 @@ public class ImportTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Template_IsValidImportFile()
+    public async Task Template_IsEmptyAndDoesNotImportExamples()
     {
         var admin = await factory.AdminAsync();
 
@@ -208,7 +219,117 @@ public class ImportTests(ApiFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var template = await response.Content.ReadAsByteArrayAsync();
         var preview = await (await admin.PostAsync("/api/Import/preview", Form(template, 2026, Term.Autumn))).DataAsync<ImportReportDto>();
+        Assert.NotEmpty(preview.Errors);
+        Assert.Equal(0, preview.Summary.Students.Create);
+        Assert.Equal(0, preview.Summary.Workloads.Create);
+    }
+
+    [Fact]
+    public async Task UpdateExisting_MovesStudentAndRenamesById_PreservingPasswordWorkloadAndFeedback()
+    {
+        var admin = await factory.AdminAsync();
+        var group = ApiFactory.Unique("Old-");
+        var targetGroup = ApiFactory.Unique("New-");
+        var number = ApiFactory.Unique("edit-");
+        var teacher = $"Правкин Пётр {ApiFactory.Unique("П")}";
+        var discipline = ApiFactory.Unique("Правка ");
+        var source = File([[group, "Иванов", "Иван", "Иванович", number]], [[teacher, discipline, group]]);
+        (await Apply(admin, source, 2060, Term.Autumn)).EnsureSuccessStatusCode();
+        var original = await factory.WithDbAsync(async db =>
+        {
+            var user = await db.Users.SingleAsync(u => u.UserName == number);
+            user.MustChangePassword = false;
+            var workload = await db.Workloads.SingleAsync(w => w.GroupRef!.Name == group);
+            db.Feedbacks.Add(new Domain.Entities.Feedback { StudentId = user.Id, WorkloadId = workload.Id, Comment = "Сохранить отзыв" });
+            await db.SaveChangesAsync();
+            return new { user.Id, user.PasswordHash, user.MustChangePassword, WorkloadId = workload.Id, workload.TeacherId, workload.DisciplineId };
+        });
+        var activeStudentSession = await factory.LoginClientAsync(number, ImportFormat.TemporaryPassword(number));
+        var sheets = Roster.Read(await (await admin.GetAsync("/api/Import/export?startYear=2060&term=Autumn")).Content.ReadAsStreamAsync());
+        var workloadSheet = sheets.Single(s => s.Name == ImportFormat.WorkloadsSheet);
+        var workloadRow = Assert.Single(workloadSheet.Rows).Values.ToArray();
+        var newTeacher = $"Исправкин Пётр {ApiFactory.Unique("П")}";
+        var newDiscipline = ApiFactory.Unique("Исправлено ");
+        workloadRow[0] = newTeacher;
+        workloadRow[1] = newDiscipline;
+        // Keep the workload group: moving a student must not rewrite old workload/feedback.
+        var edited = Roster.Write([
+            new SpreadsheetSheet(ImportFormat.StudentsSheet, ImportFormat.StudentColumns,
+                [[targetGroup, "Новиков", "Иван", "", number]]),
+            new SpreadsheetSheet(workloadSheet.Name, workloadSheet.Headers,
+                [workloadRow, [newTeacher, newDiscipline, targetGroup, workloadRow[3], workloadRow[4]]]),
+        ]);
+        var addOnly = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2060, Term.Autumn))).DataAsync<ImportReportDto>();
+        Assert.Equal(3, addOnly.Warnings.Count);
+        Assert.Empty(addOnly.Changes);
+        var preview = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2060, Term.Autumn, mode: ImportMode.UpdateExisting))).DataAsync<ImportReportDto>();
         Assert.Empty(preview.Errors);
+        Assert.Equal((1, 1, 1), (preview.Summary.Students.Update, preview.Summary.Teachers.Update, preview.Summary.Disciplines.Update));
+        Assert.Equal(4, preview.Changes.Count);
+        Assert.Equal(1, preview.Summary.Workloads.Create);
+        var applied = await (await admin.PostAsync("/api/Import/apply", Form(edited, 2060, Term.Autumn,
+            mode: ImportMode.UpdateExisting, token: preview.PreviewToken))).DataAsync<ImportReportDto>();
+        Assert.Equal(1, applied.Summary.Students.Update);
+        var visibleWorkloads = await (await activeStudentSession.GetAsync($"/api/Workload?periodId={applied.Period.Id}"))
+            .DataAsync<Application.Common.Results.PagedResultDto<WorkloadDto>>();
+        Assert.Equal(targetGroup, Assert.Single(visibleWorkloads.Items!).Group!.Name);
+        await factory.WithDbAsync(async db =>
+        {
+            var user = await db.Users.Include(u => u.StudentRef!).ThenInclude(s => s.GroupRef).SingleAsync(u => u.UserName == number);
+            Assert.Equal((original.Id, original.PasswordHash, original.MustChangePassword), (user.Id, user.PasswordHash, user.MustChangePassword));
+            Assert.Equal(("Новиков", "Иван", (string?)null, targetGroup), (user.Surname, user.Name, user.Patronymic, user.StudentRef!.GroupRef!.Name));
+            var workload = await db.Workloads.Include(w => w.TeacherRef).Include(w => w.DisciplineRef).SingleAsync(w => w.Id == original.WorkloadId);
+            Assert.Equal((original.TeacherId, original.DisciplineId), (workload.TeacherId, workload.DisciplineId));
+            Assert.Equal(newTeacher, $"{workload.TeacherRef!.Surname} {workload.TeacherRef.Name} {workload.TeacherRef.Patronymic}");
+            Assert.Equal(newDiscipline, workload.DisciplineRef!.Name);
+            Assert.Single(await db.Feedbacks.Where(f => f.WorkloadId == original.WorkloadId).ToListAsync());
+        });
+        var repeat = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2060, Term.Autumn, mode: ImportMode.UpdateExisting))).DataAsync<ImportReportDto>();
+        Assert.Empty(repeat.Changes);
+        Assert.Empty(repeat.Errors);
+    }
+
+    [Fact]
+    public async Task ChangedDeletionPlan_Returns409_AndRequiresConfirmationAgain()
+    {
+        var admin = await factory.AdminAsync();
+        var group = ApiFactory.Unique("Drift-");
+        var teacher = $"Планов Пётр {ApiFactory.Unique("П")}";
+        var source = File([[group, "Иванов", "Иван", "", ApiFactory.Unique("drift-")]],
+            [[teacher, "Физика", group], [teacher, "Химия", group]]);
+        (await Apply(admin, source, 2061, Term.Spring)).EnsureSuccessStatusCode();
+        var sheets = Roster.Read(await (await admin.GetAsync("/api/Import/export?startYear=2061&term=Spring")).Content.ReadAsStreamAsync());
+        var scope = sheets.Single(s => s.Name == ImportFormat.ScopeSheet);
+        var edited = Roster.Write([
+            new SpreadsheetSheet(ImportFormat.WorkloadsSheet, ImportFormat.WorkloadColumns, [[teacher, "Физика", group]]),
+            new SpreadsheetSheet(scope.Name, scope.Headers, scope.Rows.Select(r => r.Values).ToList(), Hidden: true),
+        ]);
+        var preview = await (await admin.PostAsync("/api/Import/preview", Form(edited, 2061, Term.Spring, mode: ImportMode.SynchronizeWorkloads))).DataAsync<ImportReportDto>();
+        Assert.Equal(1, preview.Summary.Workloads.Delete);
+
+        // A different administrator adds another workload after preview.
+        (await Apply(admin, File([], [[teacher, "Информатика", group]]), 2061, Term.Spring)).EnsureSuccessStatusCode();
+        var response = await admin.PostAsync("/api/Import/apply", Form(edited, 2061, Term.Spring,
+            mode: ImportMode.SynchronizeWorkloads, token: preview.PreviewToken));
+        var problem = await response.ProblemAsync(HttpStatusCode.Conflict);
+        var newReport = problem.GetProperty("report");
+        Assert.Equal(2, newReport.GetProperty("summary").GetProperty("workloads").GetProperty("delete").GetInt32());
+        Assert.Equal(3, await factory.WithDbAsync(db => db.Workloads.CountAsync(w => w.GroupRef!.Name == group)));
+        (await admin.PostAsync("/api/Import/apply", Form(edited, 2061, Term.Spring,
+            mode: ImportMode.SynchronizeWorkloads, token: newReport.GetProperty("previewToken").GetString()))).EnsureSuccessStatusCode();
+        Assert.Equal(1, await factory.WithDbAsync(db => db.Workloads.CountAsync(w => w.GroupRef!.Name == group)));
+    }
+
+    [Fact]
+    public async Task MissingPreviewToken_WritesNothing()
+    {
+        var admin = await factory.AdminAsync();
+        var number = ApiFactory.Unique("token-");
+        var response = await admin.PostAsync("/api/Import/apply", Form(
+            File([[ApiFactory.Unique("NoToken-"), "Иванов", "Иван", "", number]], []), 2062, Term.Autumn));
+        await response.ProblemAsync(HttpStatusCode.Conflict);
+        Assert.False(await factory.WithDbAsync(db => db.Users.AnyAsync(u => u.UserName == number)));
+        Assert.False(await factory.WithDbAsync(db => db.AcademicPeriods.AnyAsync(p => p.StartYear == 2062)));
     }
 
     [Fact]

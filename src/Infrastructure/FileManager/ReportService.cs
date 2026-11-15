@@ -16,15 +16,18 @@ public class ReportService : IReportService
     private readonly ICriteriaRepository _criteriaRepository;
     private readonly IFeedbackRepository _feedbackRepository;
     private readonly IPeriodRepository _periodRepository;
+    private readonly IReportHistoryService _history;
 
     public ReportService(
         ITeacherRepository teacherRepository, 
         IDisciplineRepository disciplineRepository,
         ICriteriaRepository criteriaRepository,
         IFeedbackRepository feedbackRepository,
-        IPeriodRepository periodRepository)
+        IPeriodRepository periodRepository,
+        IReportHistoryService history)
     {
         _periodRepository = periodRepository;
+        _history = history;
         _teacherRepository = teacherRepository;
         _disciplineRepository = disciplineRepository;
         _criteriaRepository = criteriaRepository;
@@ -45,7 +48,7 @@ public class ReportService : IReportService
 
         var logoPath = Path.Combine(AppContext.BaseDirectory, "FileManager", "Files", "slogo.png");
         
-        return Document.Create(container =>
+        var content = Document.Create(container =>
         {
             container.Page(page =>
             {
@@ -134,6 +137,8 @@ public class ReportService : IReportService
                 });
             });
         }).GeneratePdf();
+        await _history.SaveAsync(periodTitle, content, cancellationToken);
+        return content;
     }
 
     private async Task<string> GetPeriodTitleAsync(PeriodFilter period, CancellationToken cancellationToken)

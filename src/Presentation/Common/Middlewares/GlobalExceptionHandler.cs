@@ -21,6 +21,13 @@ public static class GlobalExceptionHandler
 
                 var problem = exception switch
                 {
+                    Application.Common.Exceptions.ImportPlanChangedException e => new ProblemDetails
+                    {
+                        Title = "Import plan changed",
+                        Status = Status409Conflict,
+                        Detail = e.Message,
+                        Extensions = { ["report"] = e.Report },
+                    },
                     Domain.Common.Exceptions.DomainException e => new ProblemDetails
                     {
                         Title = "Domain Exception",

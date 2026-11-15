@@ -27,6 +27,6 @@ public class ImportPlanner
         var period = new PeriodKey(request.StartYear, request.Term);
         var refs = await _importRepository.LoadReferenceDataAsync(period, cancellationToken);
 
-        return (ImportPlanBuilder.Build(sheets, period, refs), refs);
+        return (ImportPlanBuilder.Build(sheets, period, refs, request.Mode), refs);
     }
 }

@@ -125,7 +125,7 @@ public class ImportPlanBuilderTests
         var plan = ImportPlanBuilder.Build(
             [Workloads(["Петрова Анна Ивановна", "Физика", "ИВТ-21"]), Scope([ImportFormat.ScopePeriod, "2026:Spring"])],
             Period,
-            SyncRefs());
+            SyncRefs(), ImportMode.SynchronizeWorkloads);
 
         Assert.Empty(plan.Errors);
         Assert.Equal(["w4", "w3"], plan.WorkloadsToDelete.Select(w => w.Id));
@@ -148,7 +148,7 @@ public class ImportPlanBuilderTests
                 Scope([ImportFormat.ScopePeriod, "2026:Spring"], [ImportFormat.ScopeTeacher, "t2"]),
             ],
             Period,
-            SyncRefs());
+            SyncRefs(), ImportMode.SynchronizeWorkloads);
 
         Assert.Equal(["w4"], plan.WorkloadsToDelete.Select(w => w.Id));
         Assert.Empty(plan.Warnings);
@@ -188,7 +188,7 @@ public class ImportPlanBuilderTests
         var plan = ImportPlanBuilder.Build(
             [Workloads(["Петрова", "Физика", "ИВТ-21"]), Scope([ImportFormat.ScopePeriod, "2026:Spring"])],
             Period,
-            SyncRefs());
+            SyncRefs(), ImportMode.SynchronizeWorkloads);
 
         Assert.NotEmpty(plan.Errors);
         Assert.Empty(plan.WorkloadsToDelete);
@@ -208,7 +208,7 @@ public class ImportPlanBuilderTests
                 Scope([ImportFormat.ScopePeriod, "2026:Spring"]),
             ],
             Period,
-            refs);
+            refs, ImportMode.SynchronizeWorkloads);
 
         Assert.Empty(plan.WorkloadsToDelete);
     }
@@ -469,8 +469,8 @@ public class ImportPlanBuilderTests
         Assert.Empty(plan.Errors);
         Assert.Equal(
             [
-                new PlannedWorkload("Петрова Анна Ивановна", "Физика", "ИВТ-21"),
-                new PlannedWorkload("Петрова Анна Ивановна", "Физика", "ИВТ-22"),
+                new PlannedWorkload("Петрова Анна Ивановна", "Физика", "ИВТ-21", "t1", "d1"),
+                new PlannedWorkload("Петрова Анна Ивановна", "Физика", "ИВТ-22", "t1", "d1"),
                 new PlannedWorkload("Иванов Пётр Сергеевич", "Химия", "ИВТ-21"),
                 new PlannedWorkload("Иванов Пётр Сергеевич", "Химия", "ИВТ-22"),
             ],

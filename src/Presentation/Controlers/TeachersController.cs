@@ -52,6 +52,12 @@ public class TeachersController : BaseApiController
         };
     }
 
+    [HttpGet("{id}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiSuccessResult<TeacherDto>), Status200OK)]
+    public async Task<ApiSuccessResult<TeacherDto>> GetById(string id, CancellationToken cancellationToken) =>
+        new() { Code = Status200OK, Message = "Success", Data = await _sender.Send(new GetTeacherByIdQuery(id), cancellationToken) };
+
     /// <summary>Исправляет ФИО. Если такое ФИО уже есть, отвечает 400: записи нужно объединить.</summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]

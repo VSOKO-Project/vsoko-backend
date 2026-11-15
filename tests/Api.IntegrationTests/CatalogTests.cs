@@ -141,18 +141,31 @@ public class CatalogTests(ApiFactory factory)
         Assert.Equal("application/pdf", response.Content.Headers.ContentType!.MediaType);
         var bytes = await response.Content.ReadAsByteArrayAsync();
         Assert.Equal("%PDF"u8.ToArray(), bytes[..4]);
+        var history = await (await admin.GetAsync("/api/Report/history")).DataAsync<PagedResultDto<ReportHistoryDto>>();
+        var archived = history.Items!.First();
+        Assert.Equal(bytes.LongLength, archived.SizeBytes);
+        Assert.NotEmpty(archived.PeriodTitle);
+        Assert.EndsWith(".pdf", archived.FileName);
+        var saved = await admin.GetAsync($"/api/Report/history/{archived.Id}");
+        Assert.Equal("application/pdf", saved.Content.Headers.ContentType!.MediaType);
+        Assert.Equal(bytes, await saved.Content.ReadAsByteArrayAsync());
+        var student = await factory.LoginClientAsync("student4", ApiFactory.StudentPassword);
+        Assert.Equal(HttpStatusCode.Forbidden, (await student.GetAsync("/api/Report/history")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await student.GetAsync($"/api/Report/history/{archived.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync("/api/Report/history/missing")).StatusCode);
     }
 
     [Fact]
     public async Task Report_UnknownPeriod_Is404()
     {
         var admin = await factory.AdminAsync();
-
+        var before = await factory.WithDbAsync(db => db.ReportArchives.CountAsync());
         await (await admin.PostAsync("/api/Report?periodId=missing", null)).ProblemAsync(HttpStatusCode.NotFound);
+        Assert.Equal(before, await factory.WithDbAsync(db => db.ReportArchives.CountAsync()));
     }
 
     [Fact]
-    public async Task Summaries_UseAiWithStudentComments()
+    public async Task Summaries_ReportCoverageWithoutCallingModelInRequest()
     {
         var admin = await factory.AdminAsync();
         var (teacherId, disciplineId) = await factory.WithDbAsync(async db =>
@@ -162,13 +175,13 @@ public class CatalogTests(ApiFactory factory)
         });
         factory.Chat.Requests.Clear();
 
-        var teacher = await (await admin.GetAsync($"/api/Summaries/teacher/{teacherId}?startYear=2026")).DataAsync<string>();
-        var discipline = await (await admin.GetAsync($"/api/Summaries/discipline/{disciplineId}")).DataAsync<string>();
+        var teacher = await (await admin.GetAsync($"/api/Summaries/teacher/{teacherId}?startYear=2026")).DataAsync<FeedbackReportDto>();
+        var discipline = await (await admin.GetAsync($"/api/Summaries/discipline/{disciplineId}")).DataAsync<FeedbackReportDto>();
 
-        Assert.Equal("Сводка от ИИ", teacher);
-        Assert.Equal("Сводка от ИИ", discipline);
-        Assert.Equal(2, factory.Chat.Requests.Count);
-        Assert.Contains("ОТЗЫВЫ СТУДЕНТОВ", factory.Chat.Requests[0].Last().Content);
+        Assert.True(teacher.TotalFeedbackCount > 0);
+        Assert.True(discipline.TotalFeedbackCount > 0);
+        Assert.Equal(teacher.CommentCount, teacher.ProcessedCount + teacher.PendingCount + teacher.FailedCount);
+        Assert.Empty(factory.Chat.Requests);
 
         await (await admin.GetAsync("/api/Summaries/teacher/missing")).ProblemAsync(HttpStatusCode.NotFound);
         await (await admin.GetAsync("/api/Summaries/discipline/missing")).ProblemAsync(HttpStatusCode.NotFound);

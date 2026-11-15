@@ -37,11 +37,19 @@ public class ApplyImportCommandHandler : IRequestHandler<ApplyImportCommand, Imp
         if (plan.HasErrors)
             throw new ImportValidationException(report);
 
+        if (!string.Equals(request.PreviewToken, report.PreviewToken, StringComparison.Ordinal))
+            throw new ImportPlanChangedException(report);
+
         var result = await _importRepository.ApplyAsync(plan, refs, cancellationToken);
 
-        await _cacheService.RemoveByTagAsync(CacheKeys.Workload.ListTag, cancellationToken);
-        await _cacheService.RemoveByTagAsync(CacheKeys.Teacher.ListTag, cancellationToken);
-        await _cacheService.RemoveByTagAsync(CacheKeys.Discipline.ListTag, cancellationToken);
+        await CatalogCache.InvalidateAsync(_cacheService, cancellationToken);
+
+        if (result.DeletedWorkloadCount is { } deleted && deleted != report.Summary.Workloads.Delete)
+        {
+            report.Warnings.Add(new(ImportFormat.WorkloadsSheet, 0,
+                "Часть нагрузки сохранена: во время импорта по ней появились отзывы."));
+            report.Summary.Workloads.Delete = deleted;
+        }
 
         report.Period.Id = result.PeriodId;
         report.CreatedGroupIds = result.CreatedGroupIds;

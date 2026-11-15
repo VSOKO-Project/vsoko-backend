@@ -3,6 +3,8 @@ using FluentValidation;
 
 namespace Application.Features.ImportFeatures;
 
+public enum ImportMode { AddOnly, UpdateExisting, SynchronizeWorkloads }
+
 /// <summary>Поля формы импорта: файл и период.</summary>
 public abstract class ImportFileRequest
 {
@@ -11,6 +13,8 @@ public abstract class ImportFileRequest
     public long Length { get; init; }
     public int StartYear { get; init; }
     public Term Term { get; init; }
+    public ImportMode Mode { get; init; }
+    public string? PreviewToken { get; init; }
 }
 
 public class ImportFileRequestValidator<T> : AbstractValidator<T>
@@ -27,5 +31,6 @@ public class ImportFileRequestValidator<T> : AbstractValidator<T>
             .LessThanOrEqualTo(ImportFormat.MaxFileSize).WithMessage("Файл больше 5 МБ");
         RuleFor(w => w.StartYear).InclusiveBetween(2000, 2100);
         RuleFor(w => w.Term).IsInEnum();
+        RuleFor(w => w.Mode).IsInEnum();
     }
 }

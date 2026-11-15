@@ -29,10 +29,21 @@ public static partial class ImportPlanBuilder
     public static ImportPlan Build(
         IReadOnlyList<RosterSheet> sheets,
         PeriodKey period,
-        ImportReferenceData refs
+        ImportReferenceData refs,
+        ImportMode mode = ImportMode.AddOnly
     )
     {
-        var plan = new ImportPlan { Period = period, ExistingPeriodId = refs.PeriodId };
+        var plan = new ImportPlan { Period = period, ExistingPeriodId = refs.PeriodId, Mode = mode };
+        var scope = ReadScope(sheets);
+        plan.CanSynchronize = scope?.Period == period &&
+            (scope.TeacherIds is null || scope.TeacherIds.All(id => refs.TeacherIds.ContainsValue(id) || refs.TeacherNamesById.ContainsKey(id)));
+        plan.ScopeDescription = scope is null
+            ? "В файле нет корректных данных выгрузки. Доступны добавление и обновление без удаления нагрузки."
+            : $"Выгрузка: {PeriodCalculator.Title(scope.Period.StartYear, scope.Period.Term)}. " +
+                (scope.TeacherIds is null ? "Вся нагрузка семестра." :
+                    $"Преподаватели: {string.Join(", ", scope.TeacherIds.Order().Select(id => refs.TeacherIds.FirstOrDefault(t => t.Value == id).Key ?? id))}.");
+        if (mode == ImportMode.SynchronizeWorkloads && !plan.CanSynchronize)
+            plan.Errors.Add(new("", 0, "Для синхронизации нужна исходная выгрузка выбранного семестра с сохранённым служебным листом. Выберите добавление/обновление или загрузите подходящую выгрузку."));
 
         var studentsSheet = FindSheet(sheets, ImportFormat.StudentsSheet);
         var workloadsSheet = FindSheet(sheets, ImportFormat.WorkloadsSheet);
@@ -44,7 +55,12 @@ public static partial class ImportPlanBuilder
             return plan;
         }
 
-        if ((studentsSheet?.Rows.Count ?? 0) == 0 && (workloadsSheet?.Rows.Count ?? 0) == 0)
+        if (mode == ImportMode.SynchronizeWorkloads && workloadsSheet is null)
+            plan.Errors.Add(new("", 0, "Для синхронизации сохраните лист «Нагрузка». Для удаления всего среза оставьте на нём только заголовки."));
+
+        if (!(studentsSheet?.Rows.Any(r => r.Values.Any(v => !string.IsNullOrWhiteSpace(v))) ?? false)
+            && !(workloadsSheet?.Rows.Any(r => r.Values.Any(v => !string.IsNullOrWhiteSpace(v))) ?? false)
+            && !(mode == ImportMode.SynchronizeWorkloads && plan.CanSynchronize && workloadsSheet is not null))
         {
             plan.Errors.Add(new("", 0, "В файле нет строк с данными"));
             return plan;
@@ -63,14 +79,13 @@ public static partial class ImportPlanBuilder
         if (workloadsSheet is not null)
             keptWorkloads = BuildWorkloads(workloadsSheet, refs, plan, sheetGroups, neededGroups, referencedExistingGroups);
 
-        var scope = ReadScope(sheets);
         if (scope is not null && scope.Period != period)
         {
             plan.Warnings.Add(new("", 0,
                 $"Файл выгружен из семестра «{PeriodCalculator.Title(scope.Period.StartYear, scope.Period.Term)}»: " +
-                "в выбранный семестр нагрузка только добавится, ничего не удалится"));
+                "в выбранном семестре удаления недоступны"));
         }
-        else if (scope is not null && keptWorkloads is not null && !plan.HasErrors)
+        else if (mode == ImportMode.SynchronizeWorkloads && scope is not null && keptWorkloads is not null && !plan.HasErrors)
         {
             PlanDeletions(scope, keptWorkloads, refs, plan);
         }
@@ -158,11 +173,25 @@ public static partial class ImportPlanBuilder
                 plan.ExistingStudents++;
                 if (refs.GroupIds.ContainsKey(group))
                     referencedExistingGroups.Add(group);
-
-                if (!string.Equals(account.GroupName, group, StringComparison.OrdinalIgnoreCase))
+                var groupChanged = !string.Equals(account.GroupName, group, StringComparison.OrdinalIgnoreCase);
+                var nameChanged = account.Surname is not null &&
+                    (account.Surname != surname || account.Name != name || (account.Patronymic ?? "") != (patronymic ?? ""));
+                if ((groupChanged || nameChanged) && plan.Mode != ImportMode.AddOnly)
+                {
+                    neededGroups.TryAdd(group, group);
+                    plan.StudentsToUpdate.Add(new(new(group, surname, name, patronymic, account.Login ?? number)));
+                    if (groupChanged)
+                        plan.Changes.Add(new("Студент", number, "Группа", account.GroupName ?? "", group));
+                    if (nameChanged)
+                        plan.Changes.Add(new("Студент", number, "ФИО",
+                            string.Join(' ', new[] { account.Surname, account.Name, account.Patronymic }.Where(s => !string.IsNullOrEmpty(s))),
+                            string.Join(' ', new[] { surname, name, patronymic }.Where(s => !string.IsNullOrEmpty(s)))));
+                }
+                else if (groupChanged || nameChanged)
                 {
                     plan.Warnings.Add(new(sheet.Name, row.RowNumber,
-                        $"Студент {number} уже числится в группе {account.GroupName}, оставлен там"));
+                        $"Изменения студента {number} не применятся в режиме добавления. " +
+                        $"Текущая группа: {account.GroupName}. Для исправления ФИО или группы выберите режим обновления."));
                 }
                 continue;
             }
@@ -188,9 +217,11 @@ public static partial class ImportPlanBuilder
     {
         var teacherNames = refs.TeacherIds.ToDictionary(t => t.Value, t => t.Key);
         var disciplineNames = refs.DisciplineIds.ToDictionary(d => d.Value, d => d.Key);
+        foreach (var pair in refs.TeacherNamesById) teacherNames[pair.Key] = pair.Value;
+        foreach (var pair in refs.DisciplineNamesById) disciplineNames[pair.Key] = pair.Value;
         var groupNames = refs.GroupIds.ToDictionary(g => g.Value, g => g.Key);
 
-        // Запись, которую не найти по имени (например, второй препод с тем же ФИО), файл описать не может: её не удаляем.
+        // Не удаляем запись, если её справочная сущность отсутствует в срезе данных.
         var removed = refs.Workloads
             .Where(w => scope.TeacherIds is null || scope.TeacherIds.Contains(w.Key.TeacherId))
             .Where(w => !keptWorkloads.Contains(w.Key))
@@ -231,17 +262,27 @@ public static partial class ImportPlanBuilder
 
         PeriodKey? period = null;
         var teacherIds = new HashSet<string>();
+        int? teacherCount = null;
 
         foreach (var row in sheet.Rows.Where(r => r.Values.Count >= 2))
         {
             var (key, value) = (row.Values[0].Trim(), row.Values[1].Trim());
 
             if (key == ImportFormat.ScopePeriod)
+            {
+                if (period is not null) return null;
                 period = ParsePeriod(value);
+            }
             else if (key == ImportFormat.ScopeTeacher && value.Length > 0)
                 teacherIds.Add(value);
+            else if (key == ImportFormat.ScopeTeacherCount)
+            {
+                if (teacherCount is not null || !int.TryParse(value, out var count) || count < 0) return null;
+                teacherCount = count;
+            }
         }
 
+        if (teacherCount is { } expected && teacherIds.Count != expected) return null;
         return period is { } p ? new ExportScope(p, teacherIds.Count > 0 ? teacherIds : null) : null;
     }
 
@@ -250,6 +291,7 @@ public static partial class ImportPlanBuilder
         var parts = value.Split(':');
         return parts.Length == 2
             && int.TryParse(parts[0], out var startYear)
+            && startYear is >= 2000 and <= 2100
             && Enum.TryParse<Term>(parts[1], out var term)
             && Enum.IsDefined(term)
                 ? new PeriodKey(startYear, term)
@@ -269,7 +311,7 @@ public static partial class ImportPlanBuilder
         var columns = MapColumns(
             sheet,
             [ImportFormat.TeacherFio, ImportFormat.Discipline, ImportFormat.Group],
-            [],
+            [ImportFormat.TeacherId, ImportFormat.DisciplineId],
             plan
         );
 
@@ -282,6 +324,16 @@ public static partial class ImportPlanBuilder
         var existingTeachers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var disciplines = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var existingDisciplines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var teacherNames = refs.TeacherIds.ToDictionary(t => t.Value, t => t.Key);
+        var disciplineNames = refs.DisciplineIds.ToDictionary(d => d.Value, d => d.Key);
+        foreach (var pair in refs.TeacherNamesById) teacherNames[pair.Key] = pair.Value;
+        foreach (var pair in refs.DisciplineNamesById) disciplineNames[pair.Key] = pair.Value;
+        var teacherEdits = new Dictionary<string, string>();
+        var disciplineEdits = new Dictionary<string, string>();
+        var ambiguousTeachers = teacherNames.Values.GroupBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var ambiguousDisciplines = disciplineNames.Values.GroupBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in sheet.Rows)
         {
@@ -307,6 +359,18 @@ public static partial class ImportPlanBuilder
             }
 
             CheckLength(errors, ImportFormat.Discipline, discipline, DisciplineNameMaxLength);
+            var teacherId = values.GetValueOrDefault(ImportFormat.TeacherId, "");
+            var disciplineId = values.GetValueOrDefault(ImportFormat.DisciplineId, "");
+            if (teacherId.Length > 0 && !teacherNames.ContainsKey(teacherId))
+                errors.Add("ID преподавателя не найден. Скачайте свежую выгрузку; для нового преподавателя оставьте ID пустым.");
+            if (disciplineId.Length > 0 && !disciplineNames.ContainsKey(disciplineId))
+                errors.Add("ID дисциплины не найден. Скачайте свежую выгрузку; для новой дисциплины оставьте ID пустым.");
+            if (teacherId.Length == 0 && teacher is not null &&
+                ambiguousTeachers.Contains(teacher.Key))
+                errors.Add("Найдено несколько преподавателей с таким ФИО. Используйте выгрузку с ID преподавателя.");
+            if (disciplineId.Length == 0 &&
+                ambiguousDisciplines.Contains(discipline))
+                errors.Add("Найдено несколько дисциплин с таким названием. Используйте выгрузку с ID дисциплины.");
 
             if (group.Length > 0 && !refs.GroupIds.ContainsKey(group) && !sheetGroups.ContainsKey(group))
                 errors.Add($"Группа «{group}» не найдена ни в базе, ни на листе «{ImportFormat.StudentsSheet}»");
@@ -315,11 +379,28 @@ public static partial class ImportPlanBuilder
                 continue;
 
             group = CanonicalGroup(group, refs, sheetGroups);
+            var teacherKey = teacherId.Length > 0 ? teacherNames[teacherId] : teacher!.Key;
+            if (teacherId.Length == 0)
+                teacherId = refs.TeacherIds.GetValueOrDefault(teacherKey, "");
+
             discipline = refs.DisciplineIds.Keys.FirstOrDefault(d => string.Equals(d, discipline, StringComparison.OrdinalIgnoreCase))
                 ?? disciplines.GetValueOrDefault(discipline)
                 ?? discipline;
+            var disciplineKey = disciplineId.Length > 0 ? disciplineNames[disciplineId] : discipline;
+            if (disciplineId.Length == 0)
+                disciplineId = refs.DisciplineIds.GetValueOrDefault(disciplineKey, "");
 
-            var key = (teacher!.Key.ToLowerInvariant(), discipline.ToLowerInvariant(), group.ToLowerInvariant());
+            if (teacherId.Length > 0)
+                PlanRename(ImportFormat.TeacherFio, "Преподаватель", teacherId, teacherNames[teacherId], teacher!.Key,
+                    teacherEdits, refs.TeacherIds, plan, sheet.Name, row.RowNumber,
+                    () => plan.TeachersToUpdate.Add(new(teacherId, teacher!)));
+            if (disciplineId.Length > 0)
+                PlanRename(ImportFormat.Discipline, "Дисциплина", disciplineId, disciplineNames[disciplineId], discipline,
+                    disciplineEdits, refs.DisciplineIds, plan, sheet.Name, row.RowNumber,
+                    () => plan.DisciplinesToUpdate.Add(new(disciplineId, discipline)));
+
+            var key = ((teacherId.Length > 0 ? teacherId : teacherKey).ToLowerInvariant(),
+                (disciplineId.Length > 0 ? disciplineId : disciplineKey).ToLowerInvariant(), group.ToLowerInvariant());
             if (seen.TryGetValue(key, out var firstRow))
             {
                 plan.Warnings.Add(new(sheet.Name, row.RowNumber, $"Строка повторяет строку {firstRow}, пропущена"));
@@ -327,13 +408,13 @@ public static partial class ImportPlanBuilder
             }
             seen[key] = row.RowNumber;
 
-            if (refs.TeacherIds.ContainsKey(teacher.Key))
-                existingTeachers.Add(teacher.Key);
-            else if (teachersToCreate.Add(teacher.Key))
-                plan.TeachersToCreate.Add(teacher);
+            if (teacherId.Length > 0)
+                existingTeachers.Add(teacherId);
+            else if (teachersToCreate.Add(teacher!.Key))
+                plan.TeachersToCreate.Add(teacher!);
 
-            if (refs.DisciplineIds.ContainsKey(discipline))
-                existingDisciplines.Add(discipline);
+            if (disciplineId.Length > 0)
+                existingDisciplines.Add(disciplineId);
             else if (disciplines.TryAdd(discipline, discipline))
                 plan.DisciplinesToCreate.Add(discipline);
 
@@ -341,8 +422,7 @@ public static partial class ImportPlanBuilder
                 referencedExistingGroups.Add(group);
             neededGroups.TryAdd(group, group);
 
-            var existingKey = refs.TeacherIds.TryGetValue(teacher.Key, out var teacherId)
-                && refs.DisciplineIds.TryGetValue(discipline, out var disciplineId)
+            var existingKey = teacherId.Length > 0 && disciplineId.Length > 0
                 && refs.GroupIds.TryGetValue(group, out var groupId)
                     ? new WorkloadKey(teacherId, disciplineId, groupId)
                     : (WorkloadKey?)null;
@@ -354,13 +434,47 @@ public static partial class ImportPlanBuilder
             }
             else
             {
-                plan.WorkloadsToCreate.Add(new PlannedWorkload(teacher.Key, discipline, group));
+                plan.WorkloadsToCreate.Add(new PlannedWorkload(teacherKey, disciplineKey, group,
+                    teacherId.Length > 0 ? teacherId : null, disciplineId.Length > 0 ? disciplineId : null));
             }
         }
 
         plan.ExistingTeachers = existingTeachers.Count;
         plan.ExistingDisciplines = existingDisciplines.Count;
+        foreach (var rename in plan.TeachersToUpdate)
+            if (teachersToCreate.Contains(rename.Teacher.Key))
+                plan.Errors.Add(new(sheet.Name, 0, $"ФИО «{rename.Teacher.Key}» одновременно используется для нового и существующего преподавателя. Укажите одинаковый ID во всех его строках."));
+        foreach (var rename in plan.DisciplinesToUpdate)
+            if (disciplines.ContainsKey(rename.Name))
+                plan.Errors.Add(new(sheet.Name, 0, $"Дисциплина «{rename.Name}» одновременно используется для новой и существующей записи. Укажите одинаковый ID во всех её строках."));
         return kept;
+    }
+
+    private static void PlanRename(string field, string entity, string id, string before, string after,
+        Dictionary<string, string> edits, Dictionary<string, string> existing, ImportPlan plan,
+        string sheet, int row, Action addUpdate)
+    {
+        if (edits.TryGetValue(id, out var previous))
+        {
+            if (!string.Equals(previous, after, StringComparison.Ordinal))
+                plan.Errors.Add(new(sheet, row, $"Для {entity.ToLowerInvariant()} с ID {id} указаны разные названия. Исправьте все строки с этим ID одинаково."));
+            return;
+        }
+        edits[id] = after;
+        if (string.Equals(before, after, StringComparison.OrdinalIgnoreCase)) return;
+        if (plan.Mode == ImportMode.AddOnly)
+        {
+            plan.Warnings.Add(new(sheet, row, $"{entity}: «{before}» → «{after}» не применится в режиме добавления. Выберите режим обновления."));
+            return;
+        }
+        if ((existing.TryGetValue(after, out var otherId) && otherId != id)
+            || edits.Any(e => e.Key != id && string.Equals(e.Value, after, StringComparison.OrdinalIgnoreCase)))
+        {
+            plan.Errors.Add(new(sheet, row, $"{entity} «{after}» уже существует. Объедините записи в справочнике, затем скачайте свежую выгрузку."));
+            return;
+        }
+        addUpdate();
+        plan.Changes.Add(new(entity, id, field, before, after));
     }
 
     public static string TeacherKey(string surname, string name, string patronymic) =>

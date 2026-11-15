@@ -52,6 +52,7 @@ public class ImportController : BaseApiController
             Length = form.File?.Length ?? 0,
             StartYear = form.StartYear,
             Term = form.Term,
+            Mode = form.Mode,
         }, cancellationToken);
 
         return new ApiSuccessResult<ImportReportDto>
@@ -63,14 +64,16 @@ public class ImportController : BaseApiController
     }
 
     /// <summary>
-    /// Повторяет разбор и проверку и применяет импорт в одной транзакции.
+    /// Повторяет разбор и проверку и применяет подтверждённый план в одной транзакции.
     /// Если в файле есть ошибки, отвечает 400 с отчётом в поле report и ничего не пишет.
+    /// Если previewToken отсутствует или план изменился, отвечает 409 с новым отчётом без записи.
     /// </summary>
     [HttpPost("apply")]
     [RequestSizeLimit(RequestLimit)]
     [RequestFormLimits(MultipartBodyLengthLimit = RequestLimit)]
     [ProducesResponseType(typeof(ApiSuccessResult<ImportReportDto>), Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), Status500InternalServerError)]
@@ -85,6 +88,8 @@ public class ImportController : BaseApiController
             Length = form.File?.Length ?? 0,
             StartYear = form.StartYear,
             Term = form.Term,
+            Mode = form.Mode,
+            PreviewToken = form.PreviewToken,
         }, cancellationToken);
 
         return new ApiSuccessResult<ImportReportDto>
@@ -168,5 +173,7 @@ public class ImportController : BaseApiController
         public IFormFile? File { get; init; }
         public int StartYear { get; init; }
         public Term Term { get; init; }
+        public ImportMode Mode { get; init; }
+        public string? PreviewToken { get; init; }
     }
 }

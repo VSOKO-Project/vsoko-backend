@@ -81,7 +81,8 @@ public class FeedbackRepository : IFeedbackRepository
         string? teacherId,
         string? workloadId,
         CancellationToken cancellationToken,
-        FeedbackSortOrder sort = FeedbackSortOrder.Newest
+        FeedbackSortOrder sort = FeedbackSortOrder.Newest,
+        PeriodFilter? period = null
     )
     {
         var spec = _accessService.GetSpecification();
@@ -106,6 +107,8 @@ public class FeedbackRepository : IFeedbackRepository
 
         if (!string.IsNullOrWhiteSpace(workloadId))
             baseQuery = baseQuery.Where(f => f.WorkloadId == workloadId);
+
+        if (period is not null) baseQuery = baseQuery.Where(period.ToFeedbackExpression());
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
 

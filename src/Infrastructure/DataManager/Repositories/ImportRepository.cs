@@ -42,13 +42,17 @@ public class ImportRepository : IImportRepository
             .Select(u => new
             {
                 u.UserName,
+                u.Surname,
+                u.Name,
+                u.Patronymic,
                 IsStudent = u.StudentRef != null,
                 GroupName = u.StudentRef != null ? u.StudentRef.GroupRef!.Name : null,
             })
             .ToListAsync(cancellationToken);
 
         foreach (var account in accounts.Where(a => a.UserName is not null))
-            refs.Accounts.TryAdd(account.UserName!, new ExistingAccount(account.IsStudent, account.GroupName));
+            refs.Accounts.TryAdd(account.UserName!, new ExistingAccount(account.IsStudent, account.GroupName,
+                account.Surname, account.Name, account.Patronymic, account.UserName));
 
         foreach (var teacher in await _dbContext.Teachers.Select(t => new { t.Id, t.Surname, t.Name, t.Patronymic }).ToListAsync(cancellationToken))
         {
@@ -58,10 +62,14 @@ public class ImportRepository : IImportRepository
                 ImportPlanBuilder.Normalize(teacher.Patronymic)
             );
             refs.TeacherIds.TryAdd(key, teacher.Id);
+            refs.TeacherNamesById[teacher.Id] = key;
         }
 
         foreach (var discipline in await _dbContext.Disciplines.Select(d => new { d.Id, d.Name }).ToListAsync(cancellationToken))
+        {
             refs.DisciplineIds.TryAdd(ImportPlanBuilder.Normalize(discipline.Name), discipline.Id);
+            refs.DisciplineNamesById[discipline.Id] = ImportPlanBuilder.Normalize(discipline.Name);
+        }
 
         if (periodId is not null)
         {
@@ -106,6 +114,35 @@ public class ImportRepository : IImportRepository
 
         await CreateStudentsAsync(plan.StudentsToCreate, groupIds, cancellationToken);
 
+        if (plan.StudentsToUpdate.Count > 0)
+        {
+            var numbers = plan.StudentsToUpdate.Select(s => s.Student.StudentNumber).ToList();
+            var users = await _dbContext.Users.Include(u => u.StudentRef)
+                .Where(u => numbers.Contains(u.UserName!)).ToDictionaryAsync(u => u.UserName!, cancellationToken);
+            foreach (var update in plan.StudentsToUpdate)
+            {
+                var student = update.Student;
+                var user = users[student.StudentNumber];
+                user.Surname = student.Surname;
+                user.Name = student.Name;
+                user.Patronymic = student.Patronymic;
+                user.StudentRef!.GroupId = groupIds[student.GroupName];
+            }
+        }
+
+        foreach (var update in plan.TeachersToUpdate)
+        {
+            var teacher = await _dbContext.Teachers.SingleAsync(t => t.Id == update.Id, cancellationToken);
+            teacher.Surname = update.Teacher.Surname;
+            teacher.Name = update.Teacher.Name;
+            teacher.Patronymic = update.Teacher.Patronymic;
+        }
+        foreach (var update in plan.DisciplinesToUpdate)
+        {
+            var discipline = await _dbContext.Disciplines.SingleAsync(d => d.Id == update.Id, cancellationToken);
+            discipline.Name = update.Name;
+        }
+
         var teacherIds = new Dictionary<string, string>(refs.TeacherIds, StringComparer.OrdinalIgnoreCase);
         foreach (var planned in plan.TeachersToCreate)
         {
@@ -126,8 +163,8 @@ public class ImportRepository : IImportRepository
         {
             _dbContext.Workloads.Add(new Workload
             {
-                TeacherId = teacherIds[planned.TeacherKey],
-                DisciplineId = disciplineIds[planned.DisciplineName],
+                TeacherId = planned.TeacherId ?? teacherIds[planned.TeacherKey],
+                DisciplineId = planned.DisciplineId ?? disciplineIds[planned.DisciplineName],
                 GroupId = groupIds[planned.GroupName],
                 PeriodId = periodId,
             });
@@ -135,17 +172,18 @@ public class ImportRepository : IImportRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        var deletedWorkloadCount = 0;
         if (plan.WorkloadsToDelete.Count > 0)
         {
             // Отзывы удаляются каскадом, поэтому условие повторяется здесь: отзыв мог появиться после построения плана.
             var deleteIds = plan.WorkloadsToDelete.Select(w => w.Id).ToList();
-            await _dbContext.Workloads
+            deletedWorkloadCount = await _dbContext.Workloads
                 .Where(w => deleteIds.Contains(w.Id) && !w.FeedbackRefs!.Any())
                 .ExecuteDeleteAsync(cancellationToken);
         }
 
         var studentGroupIds = plan.StudentGroupNames.Select(name => groupIds[name]).Distinct().ToList();
-        return new ImportApplyResult(periodId, createdGroupIds, studentGroupIds);
+        return new ImportApplyResult(periodId, createdGroupIds, studentGroupIds, deletedWorkloadCount);
     }
 
     private async Task CreateStudentsAsync(
@@ -241,6 +279,8 @@ public class ImportRepository : IImportRepository
             .Select(w => new
             {
                 w.GroupId,
+                w.TeacherId,
+                w.DisciplineId,
                 w.TeacherRef!.Surname,
                 w.TeacherRef.Name,
                 w.TeacherRef.Patronymic,
@@ -258,7 +298,7 @@ public class ImportRepository : IImportRepository
 
         return new PeriodExport(
             workloads
-                .Select(w => new ExportWorkloadRow($"{w.Surname} {w.Name} {w.Patronymic}".Trim(), w.Discipline, w.Group))
+                .Select(w => new ExportWorkloadRow($"{w.Surname} {w.Name} {w.Patronymic}".Trim(), w.Discipline, w.Group, w.TeacherId, w.DisciplineId))
                 .ToList(),
             students
         );

@@ -1,6 +1,8 @@
 using Application.Common.DTOs;
 using Application.Features.FeedbackFeatures.Command;
 using Application.Features.ReportFeatures.Query;
+using Application.Interfaces.FileManager;
+using Application.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,9 +14,22 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class ReportController : BaseApiController
 {
-    public ReportController(ISender sender) : base(sender) { }
+    private readonly IReportHistoryService _history;
+    public ReportController(ISender sender, IReportHistoryService history) : base(sender) { _history = history; }
+
+    [HttpGet("history")]
+    public async Task<ApiSuccessResult<PagedResultDto<ReportHistoryDto>>> History([FromQuery] int page = 1, CancellationToken cancellationToken = default) =>
+        new() { Code = Status200OK, Message = "Success", Data = await _history.GetHistoryAsync(page, cancellationToken) };
+
+    [HttpGet("history/{id}")]
+    public async Task<FileContentResult> Download(string id, CancellationToken cancellationToken)
+    {
+        var report = await _history.GetFileAsync(id, cancellationToken);
+        return File(report.Content, "application/pdf", report.FileName);
+    }
 
     [HttpPost]
     [Authorize(Roles = "Admin")]

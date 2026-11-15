@@ -31,6 +31,7 @@ public static class DI
         services.AddScoped<ITeacherRepository, TeacherRepository>();
         services.AddScoped<IWorkloadRepository, WorkloadRepository>();
         services.AddScoped<IPeriodRepository, PeriodRepository>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IImportRepository, ImportRepository>();
 
         services.AddSingleton<Application.Common.Mappings.CriteriaMapper>();

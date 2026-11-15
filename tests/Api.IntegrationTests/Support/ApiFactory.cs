@@ -44,6 +44,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Redis", RedisConnectionString);
         builder.UseSetting("Jwt:SecretKey", JwtSecret);
         builder.UseSetting("AI:ApiKey", "test-key");
+        builder.UseSetting("AI:AnalysisEnabled", "false");
         builder.UseSetting("Cors:AllowedOrigins", "http://localhost:3000");
 
         builder.ConfigureTestServices(services =>

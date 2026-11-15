@@ -30,14 +30,20 @@ public class CatalogEditTests(ApiFactory factory)
             new SpreadsheetSheet(ImportFormat.WorkloadsSheet, ImportFormat.WorkloadColumns,
                 workloads.Select(w => (IReadOnlyList<string>)[w[0], w[1], group]).ToList()),
         ]);
-        var content = new ByteArrayContent(file);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        var response = await admin.PostAsync("/api/Import/apply", new MultipartFormDataContent
+        MultipartFormDataContent Form(string? token = null)
         {
-            { content, "file", "roster.xlsx" },
-            { new StringContent(startYear.ToString()), "startYear" },
-            { new StringContent(nameof(Term.Autumn)), "term" },
-        });
+            var content = new ByteArrayContent(file);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            return new MultipartFormDataContent
+            {
+                { content, "file", "roster.xlsx" },
+                { new StringContent(startYear.ToString()), "startYear" },
+                { new StringContent(nameof(Term.Autumn)), "term" },
+                { new StringContent(token ?? ""), "previewToken" },
+            };
+        }
+        var preview = await (await admin.PostAsync("/api/Import/preview", Form())).DataAsync<ImportReportDto>();
+        var response = await admin.PostAsync("/api/Import/apply", Form(preview.PreviewToken));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return (group, first, second);
     }

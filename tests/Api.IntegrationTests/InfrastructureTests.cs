@@ -73,28 +73,6 @@ public class InfrastructureTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task FeedbackSummarizer_HandlesEmptyAndFailingAi()
-    {
-        var chat = new FakeChatCompletion();
-        var summarizer = new FeedbackSummarizer(chat.CreateKernel());
-        var comments = Enumerable.Range(0, 60).Select(i => $"c{i}").ToList();
-
-        Assert.Equal("Сводка от ИИ", await summarizer.SummarizeTeacherAsync("Иванов", comments, default));
-        var prompt = chat.Requests.Single().Last().Content!;
-        Assert.Contains("c49", prompt);
-        Assert.DoesNotContain("c50", prompt);
-
-        chat.Respond = _ => " ";
-        Assert.Equal("Empty message from AI.", await summarizer.SummarizeDisciplineAsync("Физика", [], default));
-
-        chat.Respond = _ => throw new HttpOperationException(System.Net.HttpStatusCode.TooManyRequests, "quota", "boom", null);
-        Assert.Equal("API Error: TooManyRequests. Details: quota", await summarizer.SummarizeDisciplineAsync("Физика", [], default));
-
-        chat.Respond = _ => throw new InvalidOperationException("offline");
-        Assert.Contains("offline", await summarizer.SummarizeTeacherAsync("Иванов", [], default));
-    }
-
-    [Fact]
     public void DependencyInjection_RequiresSettings()
     {
         Assert.Throws<InvalidOperationException>(() => new ServiceCollection().ApplyAiManager(Config()));

@@ -1,4 +1,5 @@
 using Application.Common.Sorting;
+using Application.Common.Periods;
 using FluentValidation;
 using Application.Common.Caching;
 using Application.Common.CQRS;
@@ -18,6 +19,8 @@ public class GetAllFeedbackQuery : IRequest<PagedResultDto<FeedbackDto>>, IQuery
     public int PageSize { get; init; } = 10;
     public string? DisciplineId { get; init; }
     public string? TeacherId { get; init; }
+    public string? PeriodId { get; init; }
+    public int? StartYear { get; init; }
     public string? WorkloadId { get; init; }
 }
 
@@ -53,9 +56,11 @@ public class GetAllFeedbackQueryHandler : IRequestHandler<GetAllFeedbackQuery, P
         ? CacheKeys.Feedback.GetPagedForStudent(request.Page, request.PageSize, userId!, request.DisciplineId, request.TeacherId, request.WorkloadId, request.Sort)
         : CacheKeys.Feedback.GetPaged(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, request.Sort);
 
+        var period = new PeriodFilter(request.PeriodId, request.StartYear);
+        if (!period.IsEmpty) key += $":{period.CacheKey}";
         return (await _cacheService.GetOrCreateAsync(
             key,
-            async (ct) => await _feedbackRepository.GetPagedFeedbacks(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, ct, request.Sort),
+            async (ct) => await _feedbackRepository.GetPagedFeedbacks(request.Page, request.PageSize, request.DisciplineId, request.TeacherId, request.WorkloadId, ct, request.Sort, period.IsEmpty ? null : period),
             [CacheKeys.Feedback.Tag],
             cancellationToken))!;
     }

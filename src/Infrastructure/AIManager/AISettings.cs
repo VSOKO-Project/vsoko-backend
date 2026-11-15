@@ -7,4 +7,7 @@ public class AiSettings
     public string Model { get; set; } = "google/gemini-2.5-flash";
     public string Endpoint { get; set; } = "https://openrouter.ai/api/v1";
     public string? ProxyUrl { get; set; }
+    public bool AnalysisEnabled { get; set; } = true;
+    public int AnalysisPollSeconds { get; set; } = 15;
+    public int RequestTimeoutSeconds { get; set; } = 90;
 }

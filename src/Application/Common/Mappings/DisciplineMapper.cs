@@ -27,6 +27,8 @@ public partial class DisciplineMapper
         {
             Id = t.Id,
             Name = t.Name,
+            FeedbackCount = t.WorkloadRefs!.AsQueryable().Where(inPeriod).SelectMany(w => w.FeedbackRefs!)
+                .Count(f => f.CriteriaFeedbackRefs!.Any(c => c.CriteriaRef.Object == CriteriaObject.Discipline)),
             Grade = t.WorkloadRefs!.AsQueryable().Where(inPeriod).SelectMany(w => w.FeedbackRefs!)
                 .SelectMany(f => f.CriteriaFeedbackRefs)
                 .Where(cf => cf.CriteriaRef.Object == CriteriaObject.Discipline)

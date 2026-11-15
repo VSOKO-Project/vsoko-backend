@@ -24,7 +24,8 @@ public interface IFeedbackRepository : IRepository<Feedback>
         string? teacherId,
         string? workloadId,
         CancellationToken cancellationToken,
-        FeedbackSortOrder sort = FeedbackSortOrder.Newest
+        FeedbackSortOrder sort = FeedbackSortOrder.Newest,
+        PeriodFilter? period = null
     );
 
     public Task<FeedbackDto> GetFeedbackById(
