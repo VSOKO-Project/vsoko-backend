@@ -4,7 +4,9 @@ using System.Text.Json;
 using Api.IntegrationTests.Support;
 using Application.Common.DTOs;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.AIManager;
+using Infrastructure.SecurityManager.AspNetCoreIdentity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,16 +27,25 @@ public class FeedbackAnalysisIntegrationTests(ApiFactory factory)
             var workload = new Workload
             {
                 PeriodId = await db.AcademicPeriods.Select(p => p.Id).FirstAsync(),
-                TeacherRef = new Teacher { Name = "Тест", Surname = ApiFactory.Unique("Анализ") },
+                TeacherRef = new Teacher { Name = "Тест", Surname = ApiFactory.Unique("Анализ"), Patronymic = "Тестович" },
                 DisciplineRef = new Domain.Entities.Discipline { Name = ApiFactory.Unique("Курс") },
-                GroupId = await db.StudentGroups.Select(g => g.Id).FirstAsync()
+                GroupRef = new StudentGroup { Name = ApiFactory.Unique("Анализ-"), Semester = 1 }
             };
             db.Workloads.Add(workload);
             await db.SaveChangesAsync();
-            var studentId = await db.Students.Select(s => s.Id).FirstAsync();
             Feedback? rare = null;
             for (var i = 0; i < 200; i++)
             {
+                // One student can leave only one active review per workload.
+                // These accounts are report sources and never authenticate.
+                var studentId = Guid.NewGuid().ToString();
+                var login = ApiFactory.Unique("analysis-");
+                db.Users.Add(new ApplicationUser
+                {
+                    Id = studentId, UserName = login, NormalizedUserName = login.ToUpperInvariant(),
+                    Name = "Тест", Surname = "Анализ", Type = UserType.Student,
+                    StudentRef = new Student { Id = studentId, GroupId = workload.GroupId }
+                });
                 var comment = i == 199 ? "Объясняет понятно. Перед группой назвал меня тупым." : "Объясняет понятно.";
                 var feedback = new Feedback { StudentId = studentId, WorkloadId = workload.Id, Comment = comment };
                 db.Feedbacks.Add(feedback);

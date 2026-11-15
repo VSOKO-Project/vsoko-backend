@@ -2,6 +2,8 @@
   <!-- Покрытие собирается при каждом dotnet test, порог 90% по строкам для каждого модуля. -->
   <PropertyGroup>
     <CollectCoverage>true</CollectCoverage>
+    <!-- Автоматические геттеры/сеттеры генерирует компилятор; порог проверяет исполняемую логику. -->
+    <SkipAutoProps>true</SkipAutoProps>
     <CoverletOutputFormat>cobertura</CoverletOutputFormat>
     <!-- Сгенерированный код: миграции EF и source generator OpenAPI. -->
     <ExcludeByFile>**/Migrations/*.cs,**/OpenApiXmlCommentSupport.generated.cs</ExcludeByFile>
